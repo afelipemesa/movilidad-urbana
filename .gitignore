@@ -1,0 +1,16 @@
+# Datos de Scopus: no se distribuyen (tamaño y licencia).
+# Se regeneran con la consulta documentada en el README.
+*.csv
+
+# Embeddings cacheados (~400 MB): se regeneran en la primera corrida.
+cache/
+
+# Resultados intermedios y finales (decenas de MB): se regeneran.
+*.xlsx
+
+# Entorno y temporales
+venv/
+.venv/
+__pycache__/
+*.pyc
+~$*
