@@ -15,7 +15,9 @@ __pycache__/
 *.pyc
 ~$*
 
-# Resultados finales reproducibles
-!outputs/
-!outputs/tables/
+# Lo que SÍ se publica: dataset derivado, tablas y figuras.
+# (reproducible con `python reproducir_resultados.py`)
+!data/derived/*.csv.gz
 !outputs/tables/*.csv
+!outputs/figures/*.png
+*.bat

@@ -7,16 +7,13 @@ dimensión tecnicista se explica por esa geometría y cuánto por el corpus, y r
 todo el análisis con las dimensiones estandarizadas para comprobar si las
 conclusiones se mantienen.
 
-Entradas : dimensiones_2006_2026_final.xlsx
-           resultado_v4_6_tridimensional_2006_2025.xlsx
+Entradas : dimensiones.xlsx
 Salida   : resultado_sensibilidad_descriptores.xlsx
 """
 import numpy as np
-import openpyxl
 import pandas as pd
 
-BASE = "dimensiones_2006_2026_final.xlsx"
-REGEX = "resultado_v4_6_tridimensional_2006_2025.xlsx"
+BASE = "dimensiones.xlsx"
 SALIDA = "resultado_sensibilidad_descriptores.xlsx"
 UMBRAL = 0.35
 
@@ -121,40 +118,6 @@ for a in range(2006, 2026):
 serie = pd.DataFrame(serie)
 
 # ------------------------------------------------------------------
-# 5. PENETRACION CRUZADA EN AMBAS VERSIONES
-# ------------------------------------------------------------------
-wb = openpyxl.load_workbook(REGEX, read_only=True, data_only=True)
-ws = wb["detalle_corpus"]; it = ws.iter_rows(values_only=True); h = next(it)
-ix = {c: i for i, c in enumerate(h)}
-fl = {}
-for r in it:
-    fl[str(r[ix["title"]]).strip().lower()] = (
-        bool(r[ix["RACIONALIDAD_TECNICO_INSTRUMENTAL"]]),
-        bool(r[ix["RACIONALIDAD_AMBIENTAL_ECOLOGICA"]]),
-        bool(r[ix["APERTURA_HUMANO_SOCIAL"]]),
-    )
-wb.close()
-d["key"] = d["title"].astype(str).str.strip().str.lower()
-d["rTEC"], d["rAMB"], d["rSOC"] = zip(*d["key"].map(lambda k: fl.get(k, (None, None, None))))
-dd = d.dropna(subset=["rTEC"]).copy()
-
-pen = []
-for etiqueta, col in [("crudo", "ORI_CRUDO"), ("tipificado", "ORI_TIPIF")]:
-    for n in NOM:
-        g = dd[dd[col] == n]
-        pen.append({
-            "version": etiqueta, "dimension_predominante": n, "n": len(g),
-            "pct_tecnico_instrumental": round(100 * g.rTEC.mean(), 1),
-            "pct_ambiental": round(100 * g.rAMB.mean(), 1),
-            "pct_humano_social": round(100 * g.rSOC.mean(), 1),
-        })
-pen.append({"version": "ambas", "dimension_predominante": "TOTAL CORPUS", "n": len(dd),
-            "pct_tecnico_instrumental": round(100 * dd.rTEC.mean(), 1),
-            "pct_ambiental": round(100 * dd.rAMB.mean(), 1),
-            "pct_humano_social": round(100 * dd.rSOC.mean(), 1)})
-penetracion = pd.DataFrame(pen)
-
-# ------------------------------------------------------------------
 # 6. MUESTRA DE DOCUMENTOS QUE CAMBIAN (para lectura manual)
 # ------------------------------------------------------------------
 cambian = d[d.ORI_CRUDO != d.ORI_TIPIF].copy()
@@ -175,7 +138,6 @@ with pd.ExcelWriter(SALIDA, engine="openpyxl") as w:
     brutas.to_excel(w, sheet_name="3_validez", index=False, startrow=len(solap) + 3)
     parciales.to_excel(w, sheet_name="3_validez", index=False, startrow=len(solap) + len(brutas) + 6)
     serie.to_excel(w, sheet_name="4_serie_temporal", index=False)
-    penetracion.to_excel(w, sheet_name="5_penetracion_cruzada", index=False)
     muestra.to_excel(w, sheet_name="6_muestra_para_codificar", index=False)
 
 print("\n" + "=" * 78)
@@ -195,8 +157,4 @@ print("=" * 78)
 print(solap.to_string(index=False)); print()
 print("correlacion parcial controlando relevancia:")
 print(parciales.to_string(index=False))
-print("\n" + "=" * 78)
-print("5. PENETRACION CRUZADA (% que activa cada racionalidad por criterios linguisticos)")
-print("=" * 78)
-print(penetracion.to_string(index=False))
 print("\nArchivo creado:", SALIDA)

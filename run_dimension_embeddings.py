@@ -41,10 +41,10 @@ USO:
     python run_dimension_embeddings.py --input Scopus.csv --output dimensiones.xlsx --min-relevance 0.45
 
 CACHE DE EMBEDDINGS (para no repetir horas de computo si solo cambias el
-texto de una categoria en dimensions.json):
+texto de una categoria en descriptors/dimensiones.json):
     python run_dimension_embeddings.py --input Scopus.csv --output dimensiones.xlsx --embeddings-cache cache/
 Si vuelves a correrlo con el MISMO corpus (mismos archivos --input, mismo
---sample) pero un dimensions.json distinto, reutiliza los embeddings de los
+--sample) pero un descriptors/dimensiones.json distinto, reutiliza los embeddings de los
 53.000 documentos guardados en cache/ y solo recalcula la similitud contra
 el texto de categoria nuevo (segundos en vez de horas). Si el corpus
 cambia (otro --input, otro --sample), el cache se detecta como invalido y
@@ -76,9 +76,23 @@ def load_categories(path):
     cats = {}
     cats.update(data.get("relevance", {}))
     cats.update(data.get("dimensions", {}))
+    # Ejes empiricos: se calculan y se diagnostican, pero NO son orientaciones
+    # tematicas. No deben entrar nunca en el argmax de la clasificacion
+    # preponderante (eso lo hace clasificar_embeddings_preponderante.py, que
+    # usa TECNICISTA / AMBIENTAL / SOCIAL_HUMANA de forma explicita).
+    cats.update(data.get("empirical_axes", {}))
+    cats.update(data.get("exploratory_descriptors", {}))
     relevance_names = list(data.get("relevance", {}).keys())
     dimension_names = list(data.get("dimensions", {}).keys())
-    return cats, relevance_names, dimension_names
+    axis_names = (list(data.get("empirical_axes", {}).keys())
+                  + list(data.get("exploratory_descriptors", {}).keys()))
+    if not relevance_names:
+        raise ValueError(
+            f"{path} no tiene la clave 'relevance'. El archivo de descriptores debe "
+            "estar organizado en 'relevance', 'dimensions' y, opcionalmente, "
+            "'empirical_axes' y 'exploratory_descriptors'."
+        )
+    return cats, relevance_names, dimension_names, axis_names
 
 
 def corpus_fingerprint(records):
@@ -100,7 +114,7 @@ def main():
                               "pasalos todos juntos aqui, separados por espacio: "
                               "--input parte1.csv parte2.csv parte3.csv")
     parser.add_argument("--output", default="dimensiones.xlsx", help="Ruta del xlsx de salida")
-    parser.add_argument("--categories-file", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "dimensions.json"))
+    parser.add_argument("--categories-file", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "descriptors", "dimensiones.json"))
     parser.add_argument("--sample", type=int, default=None, help="Si se pasa, procesa una muestra ALEATORIA (semilla fija, reproducible) de N documentos del total combinado -- no los primeros N, porque los CSV de Scopus vienen ordenados por anio y eso sesgaria la muestra hacia un solo rango de anios. Util para pruebas rapidas.")
     parser.add_argument("--min-relevance", type=float, default=None, help="Si se pasa, la hoja de evolucion tambien se calcula solo con documentos con sim_relevance_avg >= este valor")
     parser.add_argument("--keep-per-model", action="store_true", help="Ademas del promedio, guarda la similitud de cada modelo por separado")
@@ -108,7 +122,7 @@ def main():
                          help="Carpeta para guardar/reusar los embeddings de los documentos por modelo. "
                               "Si el corpus (--input/--sample) no cambia, evita repetir la codificacion "
                               "de todos los documentos cuando solo cambias el texto de una categoria en "
-                              "dimensions.json -- esa parte tarda segundos, no horas, con el cache activo.")
+                              "descriptors/dimensiones.json -- esa parte tarda segundos, no horas, con el cache activo.")
     args = parser.parse_args()
 
     from sentence_transformers import SentenceTransformer  # import tardio
@@ -152,9 +166,11 @@ def main():
         print("No se encontro ningun documento con title+abstract. Revisa el formato del CSV.")
         sys.exit(1)
 
-    cats, relevance_names, dimension_names = load_categories(args.categories_file)
+    cats, relevance_names, dimension_names, axis_names = load_categories(args.categories_file)
     cat_names = list(cats.keys())
     print(f"Relevancia: {relevance_names} | Dimensiones: {dimension_names}")
+    if axis_names:
+        print(f"Ejes empiricos (transversales, fuera del argmax): {axis_names}")
 
     texts = [f"{r['title']}. {r['abstract']}" for r in records]
     df = pd.DataFrame(records)[["source_file", "row", "title", "year", "abstract"]]
@@ -211,7 +227,11 @@ def main():
 
     rel_col = f"sim_{relevance_names[0]}_avg"
     df = df.rename(columns={rel_col: "sim_relevance_avg"})
-    dim_cols = [f"sim_{d}_avg" for d in dimension_names]
+    # Los diagnosticos (correlaciones, parciales, top-20, coseno entre
+    # descriptores) se calculan sobre dimensiones + ejes: ahi es justo donde
+    # queremos ver si los ejes se separan de las orientaciones y entre si.
+    diagnostic_names = dimension_names + axis_names
+    dim_cols = [f"sim_{d}_avg" for d in diagnostic_names]
 
     df = df.sort_values("year_num").reset_index(drop=True)
 
@@ -226,7 +246,7 @@ def main():
     # Diagnostico: que tan correlacionadas estan las dimensiones entre si
     # (a nivel documento). Si dos dimensiones deberian ser conceptualmente
     # distintas pero salen con correlacion muy alta (ej. > 0.85-0.9), es
-    # señal de que sus descriptores en dimensions.json se solapan demasiado
+    # señal de que sus descriptores en descriptors/dimensiones.json se solapan demasiado
     # en vocabulario/semantica y conviene revisarlos, no solo confiar en
     # que "se leen distinto" en el papel.
     corr_dims = df[dim_cols].corr()
@@ -268,11 +288,11 @@ def main():
 
     # Diagnostico 4: solapamiento del top-20 documentos entre cada par de
     # dimensiones (cuantos titulos aparecen en el top-20 de ambas).
-    top20_sets = {d: set(df.sort_values(f"sim_{d}_avg", ascending=False).head(20)["title"]) for d in dimension_names}
+    top20_sets = {d: set(df.sort_values(f"sim_{d}_avg", ascending=False).head(20)["title"]) for d in diagnostic_names}
     overlap_rows = []
-    for d1 in dimension_names:
+    for d1 in diagnostic_names:
         row = {"dimension": d1}
-        for d2 in dimension_names:
+        for d2 in diagnostic_names:
             row[d2] = len(top20_sets[d1] & top20_sets[d2])
         overlap_rows.append(row)
     top20_overlap = pd.DataFrame(overlap_rows).set_index("dimension")
@@ -285,7 +305,7 @@ def main():
     # a ciegas). No decide nada, es solo para inspeccion manual.
     top_n = 30
     top_rows = []
-    for cname in dimension_names:
+    for cname in diagnostic_names:
         col = f"sim_{cname}_avg"
         top = df.sort_values(col, ascending=False).head(top_n)
         for _, r in top.iterrows():

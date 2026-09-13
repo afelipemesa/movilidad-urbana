@@ -4,13 +4,21 @@ Busca literalmente el vocabulario de la etica, la justicia, la responsabilidad
 y la ontologia en el corpus relevante, para rastrear donde aparece (y donde no)
 dentro del campo.
 
-Entrada : dimensiones_2006_2026_final.xlsx (hoja "documentos")
-Salida  : resultado_exploracion_dirigida.xlsx
+Se restringe al mismo universo del articulo: 42.208 documentos de 2006 a 2025
+con pertinencia >= 0,35. Sin el corte por anio, el corpus incluye 2026 y los
+conteos no coinciden con los publicados.
+
+Entrada : dimensiones.xlsx (hoja "documentos")
+Salidas : resultado_exploracion_dirigida.xlsx
+          outputs/tables/exploracion_dirigida_conteos.csv
+          outputs/tables/exploracion_dirigida_cruces.csv
 """
 import re
+from pathlib import Path
+
 import pandas as pd
 
-ARCHIVO = "dimensiones_2006_2026_final.xlsx"
+ARCHIVO = "dimensiones.xlsx"
 UMBRAL = 0.35
 SALIDA = "resultado_exploracion_dirigida.xlsx"
 
@@ -25,8 +33,9 @@ PATRONES = {
 df = pd.read_excel(ARCHIVO, sheet_name="documentos")
 df["sim_relevance_avg"] = pd.to_numeric(df["sim_relevance_avg"], errors="coerce")
 df["year_num"] = pd.to_numeric(df["year_num"], errors="coerce")
-df = df[df["sim_relevance_avg"] >= UMBRAL].copy()
-print(f"corpus relevante (>= {UMBRAL}): {len(df):,}")
+df = df[(df["sim_relevance_avg"] >= UMBRAL)
+        & (df["year_num"] >= 2006) & (df["year_num"] <= 2025)].copy()
+print(f"corpus relevante 2006-2025 (>= {UMBRAL}): {len(df):,}")
 
 sims = df[["sim_TECNICISTA_avg", "sim_AMBIENTAL_avg", "sim_SOCIAL_HUMANA_avg"]].apply(pd.to_numeric, errors="coerce")
 rev = {"sim_TECNICISTA_avg": "TECNICISTA", "sim_AMBIENTAL_avg": "AMBIENTAL", "sim_SOCIAL_HUMANA_avg": "SOCIAL_HUMANA"}
@@ -62,6 +71,10 @@ print(res.to_string(index=False))
 print("\nCRUCES")
 print("-" * 88)
 print(cruces.to_string(index=False))
+
+TABLAS = Path("outputs/tables"); TABLAS.mkdir(parents=True, exist_ok=True)
+res.to_csv(TABLAS / "exploracion_dirigida_conteos.csv", index=False, encoding="utf-8")
+cruces.to_csv(TABLAS / "exploracion_dirigida_cruces.csv", index=False, encoding="utf-8")
 
 with pd.ExcelWriter(SALIDA, engine="openpyxl") as w:
     res.to_excel(w, sheet_name="conteos", index=False)

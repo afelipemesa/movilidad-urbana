@@ -39,8 +39,8 @@ UMBRAL_RELEVANCIA = 0.35
 UMBRAL_MARGEN_FRONTERA = 0.03
 
 INPUT_CANDIDATES = [
-    "dimensiones_2006_2026_final.xlsx",
-    "dimensiones_2006_2026_final(2).xlsx",
+    "dimensiones.xlsx",
+    "dimensiones.xlsx",
 ]
 
 OUTPUT_DOCUMENTOS = "clasificacion_preponderante.csv"
@@ -71,12 +71,12 @@ def encontrar_input():
         if p.exists():
             return p
 
-    xlsx = list(Path(".").glob("dimensiones_2006_2026_final*.xlsx"))
+    xlsx = list(Path(".").glob("dimensiones.xlsx"))
     if xlsx:
         return xlsx[0]
 
     raise FileNotFoundError(
-        "No encontré dimensiones_2006_2026_final.xlsx en esta carpeta."
+        "No encontré dimensiones.xlsx en esta carpeta."
     )
 
 

@@ -8,13 +8,49 @@ El análisis mide qué orientaciones analíticas predominan en la literatura cie
 
 ---
 
-## Los datos no están en este repositorio
+## Contenido del repositorio
 
-Ni los CSV de Scopus (173 MB), ni los embeddings cacheados (407 MB), ni los Excel de resultados (30-45 MB cada uno). Superan los límites de GitHub y, en el caso de Scopus, su redistribución no está permitida.
+No se incluyen los CSV de Scopus (173 MB), los embeddings cacheados (407 MB) ni los Excel de resultados (30-45 MB cada uno): superan los límites de GitHub y, en el caso de Scopus, su redistribución no está permitida.
 
-**Todo se regenera** siguiendo los pasos de abajo. Lo que sí está aquí es lo que define el análisis: el código y los descriptores.
+Sí se incluye todo lo que define el análisis —código y descriptores— y un dataset derivado que permite auditar los resultados sin reejecutar el cálculo de embeddings:
 
-### Cómo obtener el corpus
+| Ruta | Contenido |
+|---|---|
+| `descriptors/dimensiones.json` | Definición vigente de los descriptores. Es el único archivo normativo. |
+| `data/derived/documentos_scores.csv.gz` | Un registro por documento (53.105): `doc_id`, `title_hash`, año y similitudes coseno promediadas. |
+| `outputs/tables/` | Tablas de validación, de sensibilidad y las dos tablas anuales de las que sale la Tabla 1 del artículo. |
+| `outputs/figures/` | Figuras. |
+
+El contenido de `data/` y `outputs/` se regenera con una sola orden:
+
+```bash
+python reproducir_resultados.py
+```
+
+Parte de `dimensiones.xlsx` (paso 1) y escribe el dataset derivado, las tablas y las figuras. No recalcula embeddings.
+
+El dataset derivado no contiene títulos, resúmenes ni identificadores de Scopus: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
+
+### Construcción de `doc_id`
+
+Corresponde al número de fila del corpus una vez construido, y el corpus se construye siempre del mismo modo:
+
+```
+2006-2019.csv → 2020-2023.csv → 2024-2025.csv → 2026.csv
+        ↓  concatenación en ese orden
+        ↓  eliminación de duplicados por título normalizado (minúsculas, sin espacios extremos)
+   53.105 documentos, numerados 1..53.105
+```
+
+La repetición de esos pasos reproduce exactamente la misma numeración.
+
+Cada registro incluye además `title_hash`, el SHA-256 del título normalizado, que permite verificar la correspondencia documento a documento —y comprobar que un corpus descargado posteriormente coincide con el aquí descrito— sin que el repositorio publique ningún título.
+
+### Archivo de descriptores vigente
+
+La definición vigente es `descriptors/dimensiones.json`. Las versiones anteriores (`dimensions.json`, `dimensions_v3.json`) se conservan únicamente en el historial de Git y no deben emplearse para reproducir resultados.
+
+### Obtención del corpus
 
 Consulta ejecutada en Scopus:
 
@@ -26,7 +62,7 @@ AND DOCTYPE(ar)
 
 Scopus limita cada descarga a 20.000 registros, por lo que el corpus se exportó en cuatro tramos (`2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv`) con los campos de título, año y resumen. Total: **53.105 artículos**.
 
-> Completar antes de publicar: fecha exacta de la consulta. Scopus se actualiza continuamente y sin esa fecha el corpus no es replicable.
+**Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua, de modo que una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
 
 ---
 
@@ -39,23 +75,38 @@ source venv/bin/activate       # macOS / Linux
 pip install -r requirements.txt
 ```
 
-Coloca los cuatro CSV de Scopus en la misma carpeta que los scripts.
+Los cuatro CSV de Scopus deben situarse en la misma carpeta que los scripts.
+
+### Entorno de ejecución recomendado
+
+El paso 1 es el único costoso. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello el paso 1 baja de unas nueve horas en CPU a unos veinte o treinta minutos.
+
+Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, de modo que los embeddings sobrevivan al cierre de la sesión:
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+```
+
+Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
 
 ---
 
 ## El proceso, paso a paso
 
-### 1. Similitud semántica de cada documento con cada orientación
+### 1. Similitud semántica de cada documento con cada descriptor
 
 ```bash
-python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones_2006_2026_final.xlsx --embeddings-cache cache/
+python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
 ```
 
-Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a cuatro descriptores de `dimensions.json`: uno de pertinencia al dominio y tres temáticos (tecnicista, ambiental, social-humana). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
+Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
 
-**Tiempo: unas 9 horas en CPU** (28 min el modelo pequeño, ~4 h cada uno de los dos grandes). En GPU baja a 20-30 minutos sin cambiar nada del código: `sentence-transformers` la detecta sola. `--embeddings-cache cache/` guarda los embeddings de los documentos, de modo que cualquier cambio posterior en los descriptores cuesta **segundos** en lugar de horas. Úsalo siempre.
+**Tiempo de cómputo:** unas nueve horas en CPU —28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes— frente a veinte o treinta minutos en GPU.
 
-**Salida:** `dimensiones_2006_2026_final.xlsx` — hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
+El parámetro `--embeddings-cache cache/` almacena los embeddings de los documentos, que son la parte costosa del cálculo. Una vez construida la caché, cualquier modificación posterior de los descriptores se resuelve en segundos, ya que solo deben recalcularse los vectores de los descriptores y los productos coseno. La caché se valida mediante una huella SHA-256 del corpus, por lo que se invalida automáticamente si cambian los documentos de entrada.
+
+**Salida:** `dimensiones.xlsx` — hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
 
 ### 2. Clasificación preponderante
 
@@ -67,66 +118,134 @@ Asigna a cada documento una única orientación: `SIN_CLASIFICAR` si su pertinen
 
 **Salidas:** `clasificacion_preponderante.csv`, `resumen_categorias_preponderantes.csv`, `evolucion_preponderante_por_anio.csv`, `sensibilidad_umbral_relevancia.csv`.
 
-### 3. Tabla año × categoría
+### 3. Figuras y tablas
 
 ```bash
-python generar_predominancia_anual.py
+python figuras.py
 ```
 
-**Salida:** `predominancia_anual_umbral_035.csv`.
+Tres figuras independientes sobre el mismo universo de 42.208 documentos: el número anual de documentos por orientación; su peso relativo, con la banda 60-70 % sombreada; y la posición media de cada orientación dentro de cada eje empírico, expresada en percentiles del propio eje, con los ejes ordenados por cercanía a la persona.
 
-### 4. Figura de evolución
+Requiere `dimensiones.xlsx` (paso 1).
 
-```bash
-python figura1_volumen_y_composicion.py
-```
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla —es `tabla1_quinquenios.csv`— y las otras dos corresponden a las Figuras 1 y 2.
 
-Dos paneles: a la izquierda el número anual de documentos por orientación; a la derecha su peso relativo. La comparación es el punto: el campo se multiplica por veinticuatro mientras su composición permanece estable.
-
-**Salida:** `figura1_composicion.png` — Figura 1 del artículo.
-
-### 5. Detección por criterios lingüísticos
-
-```bash
-python analizar_movilidad_v4_6_tridimensional.py
-python hallazgo_racionalidad_tecnica.py
-```
-
-El primero marca, mediante expresiones regulares definidas en `criterios_movilidad_v4_6_tridimensional.json`, la presencia de tres racionalidades en título y resumen: técnico-instrumental, ambiental-ecológica y de apertura humano-social. Es **multietiqueta**: un documento puede activar varias o ninguna. Mide qué formas de producir conocimiento operan en un texto, no cuál predomina.
-
-El segundo reutiliza esas columnas —no repite la detección, corre en segundos— y tabula el resultado sobre el mismo universo que la figura.
-
-**Salidas:** `resultado_v4_6_tridimensional_2006_2025.xlsx`, `resultado_hallazgo_racionalidad_tecnica.xlsx`.
-
-### 6. Exploración bibliográfica dirigida
+### 4. Exploración bibliográfica dirigida
 
 ```bash
 python exploracion_dirigida.py
 ```
 
-Busca literalmente en el corpus `ethic*`, `moral*`, `mobility/transport(ation) justice`, `responsib*`, `ontolog*` y `levinas`.
+Busca literalmente en el corpus las raíces `ethic*`, `moral*`, `responsib*`, `ontolog*` y `levinas`, junto con las expresiones `mobility justice`, `transport justice` y `transportation justice`. Opera sobre el mismo universo que el resto del análisis: los 42.208 documentos de 2006 a 2025 con pertinencia igual o superior a 0,35. Sin el corte por año el corpus incluye 2026 y los conteos no coinciden con los publicados.
+
+Sobre los 42.208 documentos del periodo 2006-2025, los resultados son: 196 documentos (0,5 %) mencionan la ética o la moral; 735 (1,7 %) la responsabilidad; 51 emplean alguna de las tres expresiones de justicia, de los cuales 46 son posteriores a 2018 y únicamente 2 mencionan también la responsabilidad; y ninguno menciona a Emmanuel Levinas.
+
+El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones registradas, 72 corresponden a documentos de orientación tecnicista y remiten a ontologías de datos en el sentido informático, no filosófico, por lo que el término no discrimina lo que aparenta discriminar.
 
 **Salida:** `resultado_exploracion_dirigida.xlsx`.
 
-### 7. Análisis de sensibilidad de los descriptores
+### 5. Análisis de sensibilidad de los descriptores
 
 ```bash
 python sensibilidad_descriptores.py
 ```
 
-Los tres descriptores temáticos no equidistan del descriptor general del dominio, lo que da ventaja al tecnicista. Este script cuantifica qué parte de esa ventaja es geometría del descriptor y qué parte es señal del corpus, y repite la clasificación con las dimensiones estandarizadas.
+Los tres descriptores temáticos no equidistan del descriptor general del dominio, lo que otorga ventaja al tecnicista. El script cuantifica qué parte de esa ventaja corresponde a la geometría del descriptor y qué parte a la señal del corpus, y repite la clasificación con las dimensiones estandarizadas.
 
 **Salida:** `resultado_sensibilidad_descriptores.xlsx`.
 
-### 8. Contacto experiencial (extensión)
+### 5b. Sensibilidad del umbral de pertinencia
 
 ```bash
-python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones_v3_experiencial.xlsx --categories-file dimensions_v3.json --embeddings-cache cache/
+python sensibilidad_umbral.py
 ```
 
-`dimensions_v3.json` añade un cuarto descriptor —**contacto experiencial**— redactado sin vocabulario temático y compuesto únicamente por procedimientos de investigación (etnografía, observación participante, entrevistas, métodos de acompañamiento, análisis cualitativo). Mide *cómo* se produce el conocimiento, no *de qué* trata, y funciona como polo opuesto del descriptor tecnicista.
+El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`.
 
-Con la caché ya construida, **tarda un par de minutos**. Deben aparecer tres líneas indicando que reutiliza los embeddings; si empieza a codificar documentos, la caché no coincide con el corpus.
+**Posición del umbral.** El coseno observado no recorre el intervalo 0-1, sino de 0,065 a 0,806, con media 0,502 y desviación típica 0,113. El valor 0,35 se sitúa en el percentil 10,3, a 1,3 desviaciones por debajo de la media: recorta la décima parte menos pertinente del corpus, y no representa «un parecido del 35 %».
+
+**Efecto de su desplazamiento.**
+
+| Umbral | Retenidos | % del corpus | Tecnicista | Ambiental | Social-humana |
+|---|---|---|---|---|---|
+| 0,30 | 44.806 | 95,5 % | 66,3 % | 19,6 % | 14,1 % |
+| **0,35** | **42.208** | **90,0 %** | **65,7 %** | **19,5 %** | **14,8 %** |
+| 0,40 | 37.784 | 80,6 % | 63,7 % | 19,9 % | 16,4 % |
+| 0,45 | 32.393 | 69,1 % | 60,6 % | 20,8 % | 18,6 % |
+| 0,50 | 25.769 | 54,9 % | 56,0 % | 22,2 % | 21,8 % |
+
+El predominio tecnicista se mantiene entre el 60 % y el 66 % para umbrales de 0,30 a 0,45. Con un corte de 0,50, que descarta casi la mitad del corpus, desciende al 56 % y continúa siendo con holgura la orientación mayoritaria.
+
+**Revisión manual de la frontera.** El archivo `umbral_frontera_muestra.csv` recoge doce títulos de cada una de cuatro bandas, citados como ejemplos bibliográficos para que la decisión pueda inspeccionarse. Se trata de una muestra reducida y de carácter ilustrativo: permite observar qué tipo de documento queda a cada lado del corte, pero no estimar tasas de error ni sostener afirmaciones sobre el corpus completo.
+
+Por debajo de 0,30 el filtro opera correctamente (compresión de datos LiDAR, intercambiadores de calor para diésel, enjambres de drones). Entre 0,32 y 0,35 se pierden trabajos que sí pertenecen al dominio (predicción de flujo de tráfico, cambio de carril, vibración ferroviaria). Entre 0,35 y 0,38 ingresan trabajos urbanos ajenos a la movilidad (contaminación de suelos, metabolismo del agua, confort térmico, ventanas inteligentes).
+
+La banda 0,32-0,38 resulta mixta en ambos sentidos, como ocurriría con cualquier umbral, dado que es allí donde el dominio se difumina. En la muestra los falsos negativos son de orientación tecnicista y los falsos positivos ambientales ajenos a la movilidad, lo que sugiere —sin demostrarlo— que rebajar el corte incorporaría más tecnicismo del que excluiría. Esa lectura solo puede contrastarse con la tabla de sensibilidad anterior, que cubre el corpus completo: con umbral 0,30 la proporción tecnicista asciende al 66,3 % y con 0,50 desciende al 56,0 %.
+
+**Robustez de los ejes empíricos.** El resultado del paso 6 se recalcula íntegramente con cada umbral. Brecha social-humana menos tecnicista, en puntos de percentil:
+
+| Umbral | Observación | Interacción estructurada | Interacción experiencial |
+|---|---|---|---|
+| 0,30 | +19,9 | +29,8 | +41,6 |
+| 0,35 | +18,5 | +28,8 | +41,4 |
+| 0,40 | +15,6 | +26,3 | +40,4 |
+| 0,45 | +12,2 | +23,0 | +39,1 |
+| 0,50 | +8,2 | +18,9 | +37,1 |
+
+La progresión es monótona en los cinco umbrales. Con el corte más exigente la brecha de observación se estrecha de 20 a 8 puntos mientras la de interacción experiencial apenas varía, de 42 a 37: cuanto más estricto es el criterio de pertinencia, más nítido resulta que la observación constituye el terreno compartido y la escucha el que separa.
+
+**Salidas:** `umbral_distribucion.csv`, `umbral_sensibilidad.csv`, `umbral_frontera_muestra.csv`, `umbral_robustez_figura3.csv`.
+
+---
+
+### 6. Ejes empíricos: cómo se produce el conocimiento
+
+```bash
+python validar_ejes_empiricos.py
+```
+
+Los pasos 1 a 6 miden de qué trata cada documento. Los ejes empíricos miden cómo se produjo el conocimiento, mediante tres descriptores redactados con fronteras mutuas y compuestos únicamente por procedimientos:
+
+| Eje | Contenido |
+|---|---|
+| `OBSERVACION_TERRENO` | Aforos, conteos de peatones y vehículos, giros, velocidades puntuales, tiempos de viaje y demora, colas, ocupación, auditorías e inspecciones, observación sistemática in situ. |
+| `INTERACCION_ESTRUCTURADA` | Encuestas origen-destino y de hogares, encuestas de interceptación y a bordo, cuestionarios, entrevistas estructuradas, diarios estructurados, preferencias declaradas y reveladas, experimentos de elección, escalas de satisfacción, aceptación e intención. |
+| `INTERACCION_EXPERIENCIAL` | Entrevistas en profundidad y semiestructuradas, etnografía con participantes, observación participante, grupos focales, historias de vida, *go-along* y *ride-along*, diarios narrativos, talleres participativos, co-diseño, investigación-acción. |
+
+Se calculan en el paso 1, junto con los descriptores temáticos, y son transversales: no compiten entre sí ni con las tres orientaciones, y un mismo documento puede puntuar alto en varios. Residen por ello en el bloque `empirical_axes` del archivo de descriptores y no intervienen en el `argmax` de la clasificación preponderante, que emplea exclusivamente TECNICISTA, AMBIENTAL y SOCIAL_HUMANA.
+
+La distinción entre el segundo y el tercer eje es de orden epistemológico: en una encuesta origen-destino hay una persona delante a la que se pregunta, pero el instrumento fija de antemano lo que esa persona puede responder. Observar, preguntar mediante categorías previas y abrirse al relato producen conocimientos distintos.
+
+La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno: la posición media de cada orientación dentro del ordenamiento de cada eje. Al operar sobre rangos, la medida resulta comparable entre ejes —elimina el efecto de que cada descriptor se sitúe a distinta distancia del dominio— y no depende de dónde se fije un umbral.
+
+| | Observación | Interacción estructurada | Interacción experiencial |
+|---|---|---|---|
+| Tecnicista | 46,5 | 43,6 | 41,3 |
+| Ambiental | 50,2 | 54,6 | 54,4 |
+| Social-humana | 65,1 | 72,4 | 82,7 |
+| **Brecha social-humana − tecnicista** | **18,6** | **28,8** | **41,4** |
+
+La misma progresión se obtiene con otras tres medidas: media tipificada (−0,12 / −0,22 / −0,31 frente a +0,51 / +0,79 / +1,21), decil superior (8,5 / 6,2 / 3,3 frente a 17,2 / 26,3 / 41,1) y tamaño del efecto (d de Cohen 0,64 / 1,08 / 1,83), de modo que no depende del estadístico elegido.
+
+**Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada.
+
+**Separación entre los ejes.** Coseno entre descriptores: observación ↔ estructurada 0,603; observación ↔ experiencial 0,685; estructurada ↔ experiencial 0,596, de manera que el par que resultaba necesario distinguir es el más separado. Correlación documental parcial, controlando pertinencia: 0,197, 0,431 y 0,348. Solapamiento del top-20 entre los tres ejes: 0, 1 y 0 documentos.
+
+Correlación parcial de cada eje con las orientaciones, controlando pertinencia:
+
+| Eje | TECNICISTA | AMBIENTAL | SOCIAL_HUMANA |
+|---|---|---|---|
+| Observación de terreno | +0,149 | +0,022 | +0,135 |
+| Interacción estructurada | −0,122 | +0,008 | +0,252 |
+| Interacción experiencial | **−0,396** | −0,044 | **+0,639** |
+
+La observación constituye el eje compartido por las tres orientaciones. La separación aparece, y crece, a medida que el método se aproxima a la persona en calidad de interlocutora.
+
+Los descriptores `PRESENCIA_CAMPO` y `CONTACTO_DIRECTO`, procedentes de una versión anterior, se conservan en el bloque `exploratory_descriptors`: el primero mezclaba observación con encuesta y el segundo resultó excesivamente asociado a la interacción experiencial (r = 0,942). Se mantienen únicamente para permitir la comparación con esa corrida.
+
+Con la caché construida, este paso requiere un par de minutos.
+
+**Salida:** `resultado_validacion_ejes.xlsx` y las tablas correspondientes en `outputs/tables/`.
 
 ---
 
@@ -134,26 +253,25 @@ Con la caché ya construida, **tarda un par de minutos**. Deben aparecer tres l�
 
 | Archivo | Función |
 |---|---|
-| `parse_scopus.py` | Utilidad: repara y parsea los CSV de Scopus. No se ejecuta sola. |
-| `run_dimension_embeddings.py` | Pasos 1 y 8 |
+| `parse_scopus.py` | Utilidad: repara y parsea los CSV de Scopus. No se ejecuta de forma independiente. |
+| `run_dimension_embeddings.py` | Paso 1 |
 | `clasificar_embeddings_preponderante.py` | Paso 2 |
-| `generar_predominancia_anual.py` | Paso 3 |
-| `figura1_volumen_y_composicion.py` | Paso 4 |
-| `analizar_movilidad_v4_6_tridimensional.py` | Paso 5a |
-| `hallazgo_racionalidad_tecnica.py` | Paso 5b |
-| `exploracion_dirigida.py` | Paso 6 |
-| `sensibilidad_descriptores.py` | Paso 7 |
-| `dimensions.json` | Descriptores del análisis principal |
-| `dimensions_v3.json` | Descriptores con contacto experiencial |
-| `criterios_movilidad_v4_6_tridimensional.json` | Criterios lingüísticos del paso 5 |
+| `figuras.py` | Paso 3: las tres figuras en `outputs/figures/` y las dos tablas anuales en `outputs/tables/` |
+| `exploracion_dirigida.py` | Paso 4 |
+| `sensibilidad_descriptores.py` | Paso 5 |
+| `sensibilidad_umbral.py` | Paso 5b |
+| `validar_ejes_empiricos.py` | Paso 6 |
+| `generar_dataset_derivado.py` | Construye `data/derived/documentos_scores.csv.gz` |
+| `reproducir_resultados.py` | Regenera dataset derivado, tablas y figuras en una sola ejecución |
+| `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
 
 ---
 
 ## Alcance y límites
 
-- La **detección por criterios lingüísticos** (paso 5) es un diccionario construido para este trabajo, no un instrumento validado externamente. Uno de sus tres componentes, `racionalidad_sistemica`, concentra el 88,4 % de las activaciones técnico-instrumentales. Los criterios son públicos y pueden inspeccionarse en el JSON.
-- La dimensión **social-humana agrupa** el registro social-descriptivo y el ético-normativo: los embeddings sobre título y resumen no los discriminan como ejes independientes. Es un límite del instrumento, no evidencia sobre la literatura. Los dos textos separados quedan guardados en `dimensions.json` bajo `_nivel2_referencia_no_usado_por_el_pipeline`.
-- Las asignaciones dimensionales expresan **afinidad semántica predominante, no pertenencia disciplinar**. El 24,5 % de los documentos presenta un margen inferior a 0,03 entre sus dos dimensiones más altas.
+- La dimensión social-humana agrupa el registro social-descriptivo y el ético-normativo: los embeddings sobre título y resumen no los discriminan como ejes independientes. Se trata de un límite del instrumento y no de evidencia sobre la literatura. Los dos textos separados se conservan en el historial de Git, en `dimensions.json`, bajo `_nivel2_referencia_no_usado_por_el_pipeline`.
+- Las asignaciones dimensionales expresan afinidad semántica predominante y no pertenencia disciplinar. El 24,5 % de los documentos presenta un margen inferior a 0,03 entre sus dos dimensiones más altas.
+- El análisis opera sobre título y resumen. Un trabajo que haya empleado determinado procedimiento sin declararlo en el resumen no puntúa en el eje correspondiente: lo que se mide es la forma en que la investigación se presenta públicamente.
 
 ---
 
