@@ -14,3 +14,8 @@ venv/
 __pycache__/
 *.pyc
 ~$*
+
+# Resultados finales reproducibles
+!outputs/
+!outputs/tables/
+!outputs/tables/*.csv
