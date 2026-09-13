@@ -37,7 +37,8 @@ EJE_LAB = ["Observar\nel desplazamiento", "Preguntar con\ncategorías previas", 
 c = lambda n: f"sim_{n}_avg"
 
 # ------------------------------------------------------------------ datos
-df = pd.read_excel(ENTRADA, sheet_name="documentos")
+from cargar_corpus import cargar_corpus
+df, _hay_texto = cargar_corpus()
 for k in [c(x) for x in DIMS + EJES] + ["sim_relevance_avg", "year_num"]:
     df[k] = pd.to_numeric(df[k], errors="coerce")
 d = df[(df.year_num >= 2006) & (df.year_num <= 2025) & (df.sim_relevance_avg >= UMBRAL)].copy()

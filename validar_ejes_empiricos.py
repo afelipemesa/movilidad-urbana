@@ -42,7 +42,8 @@ AFORO = [r"\btraffic count(?:s)?\b", r"\bpedestrian count(?:s)?\b", r"\bmanual c
          r"\bfield observation(?:s)?\b", r"\bsaturation flow\b"]
 rx = lambda ps: re.compile("|".join(f"(?:{p})" for p in ps), re.I)
 
-df = pd.read_excel(ENTRADA, sheet_name="documentos")
+from cargar_corpus import cargar_corpus, aviso_sin_texto
+df, HAY_TEXTO = cargar_corpus()
 for c in [col(x) for x in DIM + EJES + VIEJOS] + ["sim_relevance_avg", "year_num"]:
     if c in df.columns:
         df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -53,10 +54,15 @@ Z = (d[[col(x) for x in DIM]] - d[[col(x) for x in DIM]].mean()) / d[[col(x) for
 d["CRUDO"] = np.array(DIM)[d[[col(x) for x in DIM]].values.argmax(axis=1)]
 d["TIPIF"] = np.array(DIM)[Z.values.argmax(axis=1)]
 
-texto = d["title"].fillna("").astype(str) + " . " + d["abstract"].fillna("").astype(str)
-d["G_OD"] = texto.str.contains(rx(OD), regex=True, na=False)
-d["G_CUALI"] = texto.str.contains(rx(CUALI), regex=True, na=False)
-d["G_AFORO"] = texto.str.contains(rx(AFORO), regex=True, na=False)
+# La prueba de validacion busca vocabulario en el texto: solo corre con el Excel.
+if HAY_TEXTO:
+    texto = d["title"].fillna("").astype(str) + " . " + d["abstract"].fillna("").astype(str)
+    d["G_OD"] = texto.str.contains(rx(OD), regex=True, na=False)
+    d["G_CUALI"] = texto.str.contains(rx(CUALI), regex=True, na=False)
+    d["G_AFORO"] = texto.str.contains(rx(AFORO), regex=True, na=False)
+else:
+    aviso_sin_texto("1. Prueba de validacion de los ejes (encuesta O-D, cualitativo, aforos)")
+    d["G_OD"] = d["G_CUALI"] = d["G_AFORO"] = False
 
 print(f"documentos analiticos: {len(d):,}")
 
@@ -130,13 +136,14 @@ print("3. CORRELACION ENTRE EJES (sobre el corpus analitico)")
 print("=" * 74)
 print(corr.to_string())
 try:
-    cosdesc = pd.read_excel(ENTRADA, sheet_name="coseno_descriptores")
+    cosdesc = pd.read_excel(ENTRADA, sheet_name="coseno_descriptores") if HAY_TEXTO else pd.DataFrame()
     print("\ncoseno entre descriptores: hoja 'coseno_descriptores' del Excel de salida")
 except Exception:
     cosdesc = pd.DataFrame()
 
 TABLAS.mkdir(parents=True, exist_ok=True)
-prueba.to_csv(TABLAS / "validacion_ejes_prueba_od.csv", index=False, encoding="utf-8")
+if HAY_TEXTO:
+    prueba.to_csv(TABLAS / "validacion_ejes_prueba_od.csv", index=False, encoding="utf-8")
 cruce[cruce.eje.isin(EJES)].to_csv(TABLAS / "concentracion_ejes_por_orientacion.csv",
                                    index=False, encoding="utf-8")
 medias.reset_index().to_csv(TABLAS / "medias_ejes_por_orientacion.csv", index=False, encoding="utf-8")

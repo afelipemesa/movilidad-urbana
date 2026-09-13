@@ -29,7 +29,8 @@ DIM = ["TECNICISTA", "AMBIENTAL", "SOCIAL_HUMANA"]
 EJES = ["OBSERVACION_TERRENO", "INTERACCION_ESTRUCTURADA", "INTERACCION_EXPERIENCIAL"]
 col = lambda n: f"sim_{n}_avg"
 
-df = pd.read_excel(ENTRADA, sheet_name="documentos")
+from cargar_corpus import cargar_corpus, aviso_sin_texto
+df, HAY_TEXTO = cargar_corpus()
 for c in [col(x) for x in DIM + EJES] + ["sim_relevance_avg", "year_num"]:
     df[c] = pd.to_numeric(df[c], errors="coerce")
 r = df["sim_relevance_avg"]
@@ -61,10 +62,13 @@ sens.to_csv(TABLAS / "umbral_sensibilidad.csv", index=False, encoding="utf-8")
 print("\n2. SENSIBILIDAD DEL UMBRAL"); print(sens.to_string(index=False))
 
 # ---- 3. FRONTERA ------------------------------------------------------------
+# Necesita los titulos: solo corre con dimensiones.xlsx.
+if not HAY_TEXTO:
+    aviso_sin_texto("3. Frontera (muestra de titulos para revision manual)")
 bandas = [(0.20, 0.30, "claramente por debajo"), (0.32, 0.35, "justo por debajo del corte"),
           (0.35, 0.38, "justo por encima del corte"), (0.55, 0.70, "claramente por encima")]
 muestras = []
-for lo, hi, etiqueta in bandas:
+for lo, hi, etiqueta in (bandas if HAY_TEXTO else []):
     g = df[(r >= lo) & (r < hi)]
     s = g.sample(n=min(12, len(g)), random_state=7).sort_values("sim_relevance_avg")
     for _, x in s.iterrows():
@@ -74,9 +78,10 @@ for lo, hi, etiqueta in bandas:
                          "titulo": str(x.title),
                          "JUICIO_MANUAL": ""})
 front = pd.DataFrame(muestras)
-front.to_csv(TABLAS / "umbral_frontera_muestra.csv", index=False, encoding="utf-8")
-print("\n3. FRONTERA (muestra para revision manual)")
-for b in front.banda.unique():
+if HAY_TEXTO:
+    front.to_csv(TABLAS / "umbral_frontera_muestra.csv", index=False, encoding="utf-8")
+    print("\n3. FRONTERA (muestra para revision manual)")
+for b in (front.banda.unique() if HAY_TEXTO else []):
     g = front[front.banda == b]
     print(f"\n  {b}  ({g.situacion.iloc[0]}, n = {g.n_en_la_banda.iloc[0]:,})")
     for _, x in g.iterrows():

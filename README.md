@@ -22,13 +22,27 @@ Sí se incluye todo lo que define el análisis —código y descriptores— y un
 | `outputs/tables/` | Tablas de validación, de sensibilidad y las dos tablas anuales de las que sale la Tabla 1 del artículo. |
 | `outputs/figures/` | Figuras. |
 
-El contenido de `data/` y `outputs/` se regenera con una sola orden:
+El contenido de `outputs/` se regenera con una sola orden:
 
 ```bash
 python reproducir_resultados.py
 ```
 
-Parte de `dimensiones.xlsx` (paso 1) y escribe el dataset derivado, las tablas y las figuras. No recalcula embeddings.
+No recalcula embeddings, y funciona de dos maneras según lo que haya en la carpeta.
+
+**En un clon limpio**, partiendo solo de `data/derived/documentos_scores.csv.gz`, regenera las dos figuras del artículo, la Tabla 1 y las tablas de percentiles, concentración, correlaciones y sensibilidad del umbral. Es decir, todas las cifras del artículo que se calculan sobre las puntuaciones. Las tablas resultantes son idénticas a las publicadas aquí.
+
+**Con `dimensiones.xlsx` presente** —la salida completa del paso 1, que no se publica— regenera además lo que exige el texto de los documentos: la prueba de validación de los ejes, la muestra de frontera del umbral, la exploración bibliográfica dirigida y el propio dataset derivado. Los pasos que no pueden correr se omiten indicándolo.
+
+### Qué se puede comprobar y qué no
+
+La terminología importa, porque «reproducible» y «replicable» no significan lo mismo:
+
+- **Reproducibilidad computacional.** Las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin acceso a Scopus. Esto es posible hoy con un clon del repositorio.
+- **Trazabilidad del corpus.** Los 53.105 documentos quedan identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI.
+- **Reconstrucción del corpus fuente.** Quien tenga acceso a Scopus puede recuperar exactamente los registros utilizados y repetir el proceso completo, incluido el cálculo de embeddings.
+
+Lo que no puede hacerse desde el repositorio es buscar palabras dentro de los documentos —la exploración bibliográfica dirigida y la prueba de validación de los ejes—, porque eso requiere los títulos y resúmenes, que no se redistribuyen.
 
 El dataset derivado no contiene títulos ni resúmenes: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
 
@@ -38,7 +52,9 @@ Los CSV exportados de Scopus no se redistribuyen. En su lugar se publica `data/d
 
 Cualquier persona con acceso a Scopus puede así recuperar los documentos uno a uno y verificar que su corpus es el mismo, comparando el SHA-256 del título normalizado con la columna `title_hash`. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`, de modo que se unen por cualquiera de las dos columnas.
 
-El archivo lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 —261 duplicados retirados—, y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
+El archivo `corpus_identificadores.csv.gz` permite identificar y reconstruir el corpus original sin redistribuir títulos ni resúmenes de Scopus. La correspondencia con el dataset derivado se verificó para los 53.105 registros mediante `title_hash` y año.
+
+Lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 —261 duplicados retirados—, y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
 
 ### Construcción de `doc_id`
 
@@ -272,6 +288,7 @@ Con la caché construida, este paso requiere un par de minutos.
 | `validar_ejes_empiricos.py` | Paso 6 |
 | `generar_dataset_derivado.py` | Construye `data/derived/documentos_scores.csv.gz` |
 | `generar_identificadores.py` | Construye `data/derived/corpus_identificadores.csv.gz` (EID y DOI) |
+| `cargar_corpus.py` | Utilidad: toma `dimensiones.xlsx` si existe y, si no, el dataset derivado publicado |
 | `reproducir_resultados.py` | Regenera dataset derivado, tablas y figuras en una sola ejecución |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
 
