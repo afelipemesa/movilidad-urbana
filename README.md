@@ -18,6 +18,7 @@ Sí se incluye todo lo que define el análisis —código y descriptores— y un
 |---|---|
 | `descriptors/dimensiones.json` | Definición vigente de los descriptores. Es el único archivo normativo. |
 | `data/derived/documentos_scores.csv.gz` | Un registro por documento (53.105): `doc_id`, `title_hash`, año y similitudes coseno promediadas. |
+| `data/derived/corpus_identificadores.csv.gz` | Identificadores de los mismos 53.105 documentos: `doc_id`, `title_hash`, año, `eid` y `doi`. Permite reconstruir el corpus sin redistribuir texto con licencia. |
 | `outputs/tables/` | Tablas de validación, de sensibilidad y las dos tablas anuales de las que sale la Tabla 1 del artículo. |
 | `outputs/figures/` | Figuras. |
 
@@ -29,7 +30,15 @@ python reproducir_resultados.py
 
 Parte de `dimensiones.xlsx` (paso 1) y escribe el dataset derivado, las tablas y las figuras. No recalcula embeddings.
 
-El dataset derivado no contiene títulos, resúmenes ni identificadores de Scopus: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
+El dataset derivado no contiene títulos ni resúmenes: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
+
+### Reconstrucción del corpus
+
+Los CSV exportados de Scopus no se redistribuyen. En su lugar se publica `data/derived/corpus_identificadores.csv.gz`, con el EID de Scopus y el DOI de cada uno de los 53.105 documentos: el EID está presente en el 100 % de los registros y el DOI en el 92,3 %. Los identificadores son referencias, no contenido con licencia.
+
+Cualquier persona con acceso a Scopus puede así recuperar los documentos uno a uno y verificar que su corpus es el mismo, comparando el SHA-256 del título normalizado con la columna `title_hash`. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`, de modo que se unen por cualquiera de las dos columnas.
+
+El archivo lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 —261 duplicados retirados—, y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
 
 ### Construcción de `doc_id`
 
@@ -138,7 +147,7 @@ python exploracion_dirigida.py
 
 Busca literalmente en el corpus las raíces `ethic*`, `moral*`, `responsib*`, `ontolog*` y `levinas`, junto con las expresiones `mobility justice`, `transport justice` y `transportation justice`. Opera sobre el mismo universo que el resto del análisis: los 42.208 documentos de 2006 a 2025 con pertinencia igual o superior a 0,35. Sin el corte por año el corpus incluye 2026 y los conteos no coinciden con los publicados.
 
-Sobre los 42.208 documentos del periodo 2006-2025, los resultados son: 196 documentos (0,5 %) mencionan la ética o la moral; 735 (1,7 %) la responsabilidad; 51 emplean alguna de las tres expresiones de justicia, de los cuales 46 son posteriores a 2018 y únicamente 2 mencionan también la responsabilidad; y ninguno menciona a Emmanuel Levinas.
+Sobre los 42.208 documentos del periodo 2006-2025, los resultados son: 196 documentos (0,5 %) mencionan la ética o la moral; 735 (1,7 %) la responsabilidad; 51 emplean alguna de las tres expresiones de justicia, de los cuales 48 son posteriores a 2018 y únicamente 2 mencionan también la responsabilidad; y ninguno menciona a Emmanuel Levinas.
 
 El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones registradas, 72 corresponden a documentos de orientación tecnicista y remiten a ontologías de datos en el sentido informático, no filosófico, por lo que el término no discrimina lo que aparenta discriminar.
 
@@ -262,6 +271,7 @@ Con la caché construida, este paso requiere un par de minutos.
 | `sensibilidad_umbral.py` | Paso 5b |
 | `validar_ejes_empiricos.py` | Paso 6 |
 | `generar_dataset_derivado.py` | Construye `data/derived/documentos_scores.csv.gz` |
+| `generar_identificadores.py` | Construye `data/derived/corpus_identificadores.csv.gz` (EID y DOI) |
 | `reproducir_resultados.py` | Regenera dataset derivado, tablas y figuras en una sola ejecución |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
 
