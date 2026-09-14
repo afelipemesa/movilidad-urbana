@@ -113,13 +113,6 @@ Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` 
 !python reproducir_resultados.py
 ```
 
-Para ver una figura generada, en otra celda:
-
-```python
-from IPython.display import Image
-Image("outputs/figures/figura2_composicion.png")
-```
-
 ### Entorno de ejecución recomendado
 
 El paso 1 es el único costoso. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello el paso 1 baja de unas nueve horas en CPU a unos veinte o treinta minutos.
