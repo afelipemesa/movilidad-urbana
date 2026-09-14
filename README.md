@@ -100,11 +100,11 @@ source venv/bin/activate       # macOS / Linux
 pip install -r requirements.txt
 ```
 
-Los cuatro CSV de Scopus deben situarse en la misma carpeta que los scripts.
+Con esto basta para reproducir los resultados del artículo (siguiente sección): no hacen falta los CSV de Scopus. Solo se necesitan para el recorrido opcional que replica el pipeline completo desde cero, descrito más abajo en «Replicar el pipeline completo desde Scopus».
 
 ### En Google Colab
 
-Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus):
+Para reproducir los resultados sin instalar nada localmente:
 
 ```python
 !git clone https://github.com/afelipemesa/movilidad-urbana.git
@@ -113,26 +113,74 @@ Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` 
 !python reproducir_resultados.py
 ```
 
-### Entorno de ejecución recomendado
-
-El paso 1 es el único costoso. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello el paso 1 baja de unas nueve horas en CPU a unos veinte o treinta minutos.
-
-Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, para que los embeddings sobrevivan al cierre de la sesión:
-
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-```
-
-Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
+No requiere GPU ni ningún archivo propio: usa exclusivamente lo que ya está publicado en el repositorio. Más abajo, en «El proceso, paso a paso», está este mismo recorrido separado en tres celdas, una por cada cosa que produce.
 
 ---
 
 ## El proceso, paso a paso
 
-Estos comandos se ejecutan igual en terminal o en Colab, después de clonar el repositorio e instalar las dependencias («Instalación → En Google Colab»). Cada paso indica también su celda exacta para Colab.
+Hay dos recorridos distintos, y conviene no mezclarlos.
 
-### 1. Similitud semántica de cada documento con cada descriptor
+- **Reproducir los resultados del artículo** parte de un clon limpio del repositorio y usa solo lo que ya está publicado (`data/derived/documentos_scores.csv.gz`). Cualquier persona puede hacerlo, sin acceso a Scopus, sin GPU y sin subir ningún archivo propio. Es el recorrido principal, y el que sigue esta sección primero.
+- **Replicar el pipeline completo desde Scopus** repite además el cálculo de embeddings y todo lo que exige el texto de los documentos. Es opcional, y requiere acceso institucional a Scopus para descargar los cuatro CSV originales. Aparece después, claramente separado.
+
+### Reproducir los resultados del artículo
+
+Después de la celda de instalación de Colab (sección anterior), estas tres celdas —una por una, en este orden— llegan a las mismas tablas y figuras del artículo. Juntas tardan menos de un minuto.
+
+**Paso 1. Ejes empíricos**
+
+```python
+!python validar_ejes_empiricos.py
+```
+
+Calcula la posición de cada orientación (tecnicista, ambiental, social-humana) dentro de los tres ejes empíricos: observación, interacción estructurada e interacción experiencial. En la consola aparece la tabla de percentiles y la brecha entre la orientación social-humana y la tecnicista.
+
+El dataset publicado no incluye títulos ni resúmenes, así que este paso omite un único resultado —la prueba de validación fijada de antemano con la encuesta origen-destino, que necesita buscar palabras en el texto— y lo indica con un aviso `[omitido]`. El resto (percentiles, medias, correlaciones) sale completo y es idéntico a lo publicado.
+
+**Salida:** `resultado_validacion_ejes.xlsx` y las tablas correspondientes en `outputs/tables/`.
+
+**Paso 2. Sensibilidad del umbral de pertinencia**
+
+```python
+!python sensibilidad_umbral.py
+```
+
+Repite el análisis con distintos valores del umbral de pertinencia (0,30 a 0,50) y muestra cómo cambian tanto las proporciones de cada orientación como la brecha de los ejes empíricos del paso anterior. Igual que en el paso 1, omite con aviso el único resultado que necesita texto —la muestra de títulos en la frontera del umbral— y calcula todo lo demás.
+
+**Salidas:** `umbral_distribucion.csv`, `umbral_sensibilidad.csv`, `umbral_robustez_figura3.csv`, en `outputs/tables/`.
+
+**Paso 3. Figuras y tabla final**
+
+```python
+!python figuras.py
+```
+
+Genera las tres figuras del artículo y las dos tablas de las que sale la Tabla 1, a partir de las orientaciones y los ejes empíricos que calcularon los dos pasos anteriores.
+
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, la primera se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
+
+Para verlas en Colab, en otra celda:
+
+```python
+from IPython.display import Image, display
+
+display(Image("outputs/figures/figura1_volumen.png"))
+display(Image("outputs/figures/figura2_composicion.png"))
+display(Image("outputs/figures/figura3_ejes.png"))
+```
+
+Estos tres pasos son exactamente lo que corre `python reproducir_resultados.py` de un solo golpe (sección «Contenido del repositorio»): aquí van uno por uno para ver qué produce cada uno.
+
+---
+
+### Replicar el pipeline completo desde Scopus (opcional)
+
+Esta sección solo hace falta si quieres repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus para descargar los cuatro CSV originales (sección «Obtención del corpus», más arriba); no es necesaria para reproducir los resultados publicados, que ya cubrió la sección anterior.
+
+Con los cuatro CSV descargados, súbelos a la carpeta del repositorio antes del paso 1: en Colab, arrástralos al panel de archivos (ícono de carpeta, en el margen izquierdo) hasta `movilidad-urbana/`, o cópialos ahí desde Google Drive si lo montaste. En local, basta con dejarlos en la misma carpeta que los scripts.
+
+**Paso 1. Similitud semántica de cada documento con cada descriptor**
 
 ```bash
 python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
@@ -146,13 +194,20 @@ En Colab:
 
 Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
 
-**Tiempo de cómputo:** unas nueve horas en CPU (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes) frente a veinte o treinta minutos en GPU.
+Es el único paso costoso, y el único que se beneficia de GPU. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello baja de unas nueve horas en CPU a unos veinte o treinta minutos (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes, en CPU).
+
+Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, para que los embeddings sobrevivan al cierre de la sesión:
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+```
 
 El parámetro `--embeddings-cache cache/` almacena los embeddings de los documentos, que son la parte costosa del cálculo. Una vez construida la caché, cualquier modificación posterior de los descriptores se resuelve en segundos: solo hay que recalcular los vectores de los descriptores y los productos coseno. La caché se valida mediante una huella SHA-256 del corpus y se invalida automáticamente si cambian los documentos de entrada.
 
-**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
+**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes. Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
 
-### 2. Clasificación preponderante
+**Paso 2. Clasificación preponderante**
 
 ```bash
 python clasificar_embeddings_preponderante.py
@@ -164,7 +219,7 @@ Asigna a cada documento una única orientación: `SIN_CLASIFICAR` si su pertinen
 
 **Salidas:** `clasificacion_preponderante.csv`, `resumen_categorias_preponderantes.csv`, `evolucion_preponderante_por_anio.csv`, `sensibilidad_umbral_relevancia.csv`.
 
-### 3. Exploración bibliográfica dirigida
+**Paso 3. Exploración bibliográfica dirigida**
 
 ```bash
 python exploracion_dirigida.py
@@ -180,7 +235,7 @@ El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones r
 
 **Salida:** `resultado_exploracion_dirigida.xlsx`.
 
-### 4. Análisis de sensibilidad de los descriptores
+**Paso 4. Análisis de sensibilidad de los descriptores**
 
 ```bash
 python sensibilidad_descriptores.py
@@ -192,7 +247,7 @@ Los tres descriptores temáticos no equidistan del descriptor general del domini
 
 **Salida:** `resultado_sensibilidad_descriptores.xlsx`.
 
-### 5. Sensibilidad del umbral de pertinencia
+**Paso 5. Sensibilidad del umbral de pertinencia**
 
 ```bash
 python sensibilidad_umbral.py
@@ -200,7 +255,7 @@ python sensibilidad_umbral.py
 
 En Colab: `!python sensibilidad_umbral.py`
 
-El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`.
+El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`. Con `dimensiones.xlsx` presente, esta versión completa incluye además la muestra de frontera con títulos reales, que el recorrido público omite.
 
 **Posición del umbral.** El coseno observado no recorre el intervalo 0-1, sino de 0,065 a 0,806, con media 0,502 y desviación típica 0,113. El valor 0,35 se sitúa en el percentil 10,3, a 1,3 desviaciones por debajo de la media: recorta la décima parte menos pertinente del corpus, y no representa «un parecido del 35 %».
 
@@ -236,7 +291,7 @@ La progresión es monótona en los cinco umbrales. Con el corte más exigente la
 
 **Salidas:** `umbral_distribucion.csv`, `umbral_sensibilidad.csv`, `umbral_frontera_muestra.csv`, `umbral_robustez_figura3.csv`.
 
-### 6. Ejes empíricos: cómo se produce el conocimiento
+**Paso 6. Ejes empíricos: cómo se produce el conocimiento**
 
 ```bash
 python validar_ejes_empiricos.py
@@ -267,7 +322,7 @@ La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno
 
 La misma progresión se obtiene con otras tres medidas: media tipificada (−0,12 / −0,22 / −0,31 frente a +0,51 / +0,79 / +1,21), decil superior (8,5 / 6,2 / 3,3 frente a 17,2 / 26,3 / 41,1) y tamaño del efecto (d de Cohen 0,64 / 1,08 / 1,83): no depende del estadístico elegido.
 
-**Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada.
+**Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada. Esta prueba —a diferencia del resto del paso— solo puede evaluarse con `dimensiones.xlsx`, porque busca palabras en el texto de los documentos.
 
 **Separación entre los ejes.** Coseno entre descriptores: observación ↔ estructurada 0,603; observación ↔ experiencial 0,685; estructurada ↔ experiencial 0,596: el par que resultaba necesario distinguir es el más separado. Correlación documental parcial, controlando pertinencia: 0,197, 0,431 y 0,348. Solapamiento del top-20 entre los tres ejes: 0, 1 y 0 documentos.
 
@@ -287,9 +342,7 @@ Con la caché construida, este paso requiere un par de minutos.
 
 **Salida:** `resultado_validacion_ejes.xlsx` y las tablas correspondientes en `outputs/tables/`.
 
----
-
-### 7. Figuras y tablas finales
+**Paso 7. Figuras y tablas finales**
 
 ```bash
 python figuras.py
@@ -317,24 +370,28 @@ display(Image("outputs/figures/figura2_composicion.png"))
 display(Image("outputs/figures/figura3_ejes.png"))
 ```
 
+**Reconstruir los archivos ya publicados (opcional).** `generar_dataset_derivado.py` y `generar_identificadores.py` no son parte del análisis en sí: son los scripts con los que se construyeron `data/derived/documentos_scores.csv.gz` y `data/derived/corpus_identificadores.csv.gz`, ya publicados en el repositorio. Solo hace falta correrlos si quieres reconstruir esos archivos tú mismo a partir de tu propio `dimensiones.xlsx` (el segundo también necesita los cuatro CSV de Scopus); están documentados en «Reconstrucción del corpus», más arriba.
+
+Con `dimensiones.xlsx` ya generado (paso 1), `!python reproducir_resultados.py` encadena automáticamente los pasos 3, 5, 6 y 7 de este recorrido, además de los dos scripts de reconstrucción. `clasificar_embeddings_preponderante.py` (paso 2) y `sensibilidad_descriptores.py` (paso 4) son diagnósticos aparte y se ejecutan por separado, como arriba.
+
 ---
 
 ## Archivos de este repositorio
 
 | Archivo | Función |
 |---|---|
-| `parse_scopus.py` | Utilidad: repara y parsea los CSV de Scopus. No se ejecuta de forma independiente. |
-| `run_dimension_embeddings.py` | Paso 1 |
-| `clasificar_embeddings_preponderante.py` | Paso 2 |
-| `exploracion_dirigida.py` | Paso 3 |
-| `sensibilidad_descriptores.py` | Paso 4 |
-| `sensibilidad_umbral.py` | Paso 5 |
-| `validar_ejes_empiricos.py` | Paso 6 |
-| `figuras.py` | Paso 7: las tres figuras en `outputs/figures/` y las dos tablas anuales en `outputs/tables/` |
-| `generar_dataset_derivado.py` | Construye `data/derived/documentos_scores.csv.gz` |
-| `generar_identificadores.py` | Construye `data/derived/corpus_identificadores.csv.gz` (EID y DOI) |
+| `parse_scopus.py` | Utilidad interna de `run_dimension_embeddings.py` y `generar_identificadores.py`. No se ejecuta de forma independiente. |
+| `run_dimension_embeddings.py` | Solo desde Scopus — paso 1 |
+| `clasificar_embeddings_preponderante.py` | Solo desde Scopus — paso 2 |
+| `exploracion_dirigida.py` | Solo desde Scopus — paso 3 |
+| `sensibilidad_descriptores.py` | Solo desde Scopus — paso 4 |
+| `sensibilidad_umbral.py` | Clon limpio (paso 2) o desde Scopus (paso 5, con la muestra de frontera completa) |
+| `validar_ejes_empiricos.py` | Clon limpio (paso 1) o desde Scopus (paso 6, con el veredicto de la encuesta O-D) |
+| `figuras.py` | Clon limpio (paso 3) o desde Scopus (paso 7): las tres figuras y las dos tablas anuales |
+| `generar_dataset_derivado.py` | Reconstruye `data/derived/documentos_scores.csv.gz` (opcional; ya está publicado) |
+| `generar_identificadores.py` | Reconstruye `data/derived/corpus_identificadores.csv.gz` (opcional; ya está publicado) |
 | `cargar_corpus.py` | Utilidad: toma `dimensiones.xlsx` si existe y, si no, el dataset derivado publicado |
-| `reproducir_resultados.py` | Regenera dataset derivado, tablas y figuras en una sola ejecución |
+| `reproducir_resultados.py` | Encadena automáticamente los pasos anteriores que puede correr, según lo que haya en la carpeta |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
 
 ---
