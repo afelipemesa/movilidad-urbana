@@ -124,7 +124,7 @@ No requiere GPU ni ningún archivo propio: usa exclusivamente lo que ya está pu
 Hay dos recorridos distintos, y conviene no mezclarlos.
 
 - **Reproducir los resultados del artículo** parte de un clon limpio del repositorio y usa solo lo que ya está publicado (`data/derived/documentos_scores.csv.gz`). Cualquier persona puede hacerlo, sin acceso a Scopus, sin GPU y sin subir ningún archivo propio. Es el recorrido principal, y el que sigue esta sección primero.
-- **Replicar el pipeline completo desde Scopus** repite además el cálculo de embeddings y todo lo que exige el texto de los documentos. Es opcional, y requiere acceso institucional a Scopus para descargar los cuatro CSV originales. Aparece después, claramente separado.
+- **Replicar el pipeline completo desde Scopus** repite además el cálculo de embeddings y todo lo que exige el texto de los documentos. Es opcional, y requiere acceso institucional a Scopus para ejecutar ahí la consulta descrita en «Obtención del corpus» y descargar los resultados propios. Aparece después, claramente separado.
 
 ### Reproducir los resultados del artículo
 
@@ -178,23 +178,25 @@ Estos tres pasos son exactamente lo que corre `python reproducir_resultados.py` 
 
 ### Replicar el pipeline completo desde Scopus (opcional)
 
-Esta sección solo es necesaria para repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus para descargar los cuatro CSV originales (sección «Obtención del corpus», más arriba); no es necesaria para reproducir los resultados publicados, que ya cubre la sección anterior.
+Esta sección solo es necesaria para repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus: cada quien ejecuta ahí, con su propia cuenta, la consulta descrita en «Obtención del corpus» (más arriba) y descarga sus propios resultados, tantos archivos como le exija el límite de Scopus, no necesariamente cuatro. Esta sección no es necesaria para reproducir los resultados publicados, que ya cubre la sección anterior.
 
 Los cuatro CSV descargados deben situarse, antes del paso 1, en la copia local del repositorio de cada quien. Nunca en el repositorio de GitHub: los CSV de Scopus no se suben ni se comparten ahí, solo se usan en local, igual que en el resto del repositorio. En Colab, la copia local es la carpeta `movilidad-urbana/` que crea el propio clon dentro de esa sesión: los CSV se arrastran al panel de archivos (ícono de carpeta, en el margen izquierdo) hasta esa carpeta, o se copian ahí desde Google Drive si se ha montado. En instalación local, basta con dejarlos en la misma carpeta que los scripts, en el propio computador.
 
 **Paso 1. Similitud semántica de cada documento con cada descriptor**
 
 ```bash
-python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
+python run_dimension_embeddings.py --input *.csv --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
 ```
 
 En Colab:
 
 ```python
-!python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
+!python run_dimension_embeddings.py --input *.csv --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
 ```
 
-Los cuatro nombres después de `--input` son los del corpus original (sección «Obtención del corpus», más arriba). El parámetro acepta cualquier cantidad de archivos, con cualquier nombre: quien tenga un número distinto de CSV, o los haya llamado de otra forma, simplemente reemplaza esos cuatro nombres por los suyos, separados por espacio y en el orden en que quiera concatenarlos.
+`*.csv` toma automáticamente todos los archivos CSV que haya en la carpeta, sean cuatro, uno o los que sean: no hace falta escribir sus nombres. (Si algún nombre tiene espacios —algo frecuente en las descargas de Scopus, del tipo `scopus (1).csv`— hay que quitarlos antes de correr esta celda, porque si no cada espacio se lee como si fuera un archivo aparte: en el panel de archivos de Colab, clic derecho sobre el archivo → *Rename*.)
+
+Si se prefiere fijar a mano el orden en que se combinan los archivos, se pueden escribir los nombres uno por uno en vez de `*.csv`, separados por espacio: `--input "archivo1.csv" "archivo2.csv"`.
 
 Combina los archivos indicados y elimina duplicados por título. En la corrida original, con los cuatro archivos del corpus descrito en «Obtención del corpus», eso dejó 53.105 documentos (261 duplicados retirados); con un corpus distinto, las cifras varían en la misma proporción. Sobre el corpus resultante, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
 
