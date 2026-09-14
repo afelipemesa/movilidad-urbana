@@ -35,7 +35,10 @@ df["sim_relevance_avg"] = pd.to_numeric(df["sim_relevance_avg"], errors="coerce"
 df["year_num"] = pd.to_numeric(df["year_num"], errors="coerce")
 df = df[(df["sim_relevance_avg"] >= UMBRAL)
         & (df["year_num"] >= 2006) & (df["year_num"] <= 2025)].copy()
-print(f"corpus relevante 2006-2025 (>= {UMBRAL}): {len(df):,}")
+if len(df) == 0:
+    raise SystemExit("El corpus filtrado quedo vacio (0 documentos entre 2006-2025 con "
+                      "pertinencia >= 0.35): revisa que tu CSV de Scopus use la consulta "
+                      "de 'Obtencion del corpus' en el README.")
 
 sims = df[["sim_TECNICISTA_avg", "sim_AMBIENTAL_avg", "sim_SOCIAL_HUMANA_avg"]].apply(pd.to_numeric, errors="coerce")
 rev = {"sim_TECNICISTA_avg": "TECNICISTA", "sim_AMBIENTAL_avg": "AMBIENTAL", "sim_SOCIAL_HUMANA_avg": "SOCIAL_HUMANA"}
