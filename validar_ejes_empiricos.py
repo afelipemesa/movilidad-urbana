@@ -82,12 +82,14 @@ print("\n" + "=" * 74)
 print("1. PRUEBA DE VALIDACION  (% del grupo en el decil superior de cada eje)")
 print("=" * 74)
 print(prueba.to_string(index=False))
-od = prueba[prueba.grupo.str.startswith("Encuesta")].iloc[0]
-ok = od["INTERACCION_ESTRUCTURADA"] > od["OBSERVACION_TERRENO"] and \
-     od["INTERACCION_ESTRUCTURADA"] > od["INTERACCION_EXPERIENCIAL"]
-print(f"\n   >>> La encuesta O-D cae sobre todo en interaccion estructurada: "
-      f"{'SI — descriptor limpio' if ok else 'NO — hay que volver a redactar'}")
-
+if HAY_TEXTO:
+    od = prueba[prueba.grupo.str.startswith("Encuesta")].iloc[0]
+    ok = od["INTERACCION_ESTRUCTURADA"] > od["OBSERVACION_TERRENO"] and \
+         od["INTERACCION_ESTRUCTURADA"] > od["INTERACCION_EXPERIENCIAL"]
+    print(f"\n   >>> La encuesta O-D cae sobre todo en interaccion estructurada: "
+          f"{'SI — descriptor limpio' if ok else 'NO — hay que volver a redactar'}")
+else:
+    print("\n   >>> [omitido] veredicto de la prueba: requiere texto (dimensiones.xlsx)")
 # ---- 2. CRUCE CON LAS ORIENTACIONES ---------------------------------------
 cruces = []
 for k, etiqueta in [(0.95, "top 5 %"), (0.90, "top 10 %"), (0.80, "top 20 %")]:
