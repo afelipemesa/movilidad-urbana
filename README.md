@@ -130,10 +130,18 @@ Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
 
 ## El proceso, paso a paso
 
+Estos comandos se ejecutan igual en terminal o en Colab, después de clonar el repositorio e instalar las dependencias («Instalación → En Google Colab»). Cada paso indica también su celda exacta para Colab.
+
 ### 1. Similitud semántica de cada documento con cada descriptor
 
 ```bash
 python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
+```
+
+En Colab:
+
+```python
+!python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
 ```
 
 Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
@@ -150,27 +158,19 @@ El parámetro `--embeddings-cache cache/` almacena los embeddings de los documen
 python clasificar_embeddings_preponderante.py
 ```
 
+En Colab: `!python clasificar_embeddings_preponderante.py`
+
 Asigna a cada documento una única orientación: `SIN_CLASIFICAR` si su pertinencia es inferior a 0,35; en caso contrario, la dimensión de mayor similitud. No existe categoría mixta.
 
 **Salidas:** `clasificacion_preponderante.csv`, `resumen_categorias_preponderantes.csv`, `evolucion_preponderante_por_anio.csv`, `sensibilidad_umbral_relevancia.csv`.
 
-### 3. Figuras y tablas
-
-```bash
-python figuras.py
-```
-
-Tres figuras independientes sobre el mismo universo de 42.208 documentos: el número anual de documentos por orientación; su peso relativo, con la banda 60-70 % sombreada; y la posición media de cada orientación dentro de cada eje empírico, expresada en percentiles del propio eje, con los ejes ordenados por cercanía a la persona.
-
-Requiere `dimensiones.xlsx` (paso 1).
-
-**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
-
-### 4. Exploración bibliográfica dirigida
+### 3. Exploración bibliográfica dirigida
 
 ```bash
 python exploracion_dirigida.py
 ```
+
+En Colab: `!python exploracion_dirigida.py`
 
 Busca literalmente en el corpus las raíces `ethic*`, `moral*`, `responsib*`, `ontolog*` y `levinas`, junto con las expresiones `mobility justice`, `transport justice` y `transportation justice`. Opera sobre el mismo universo que el resto del análisis: los 42.208 documentos de 2006 a 2025 con pertinencia igual o superior a 0,35. Sin el corte por año el corpus incluye 2026 y los conteos no coinciden con los publicados.
 
@@ -180,21 +180,25 @@ El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones r
 
 **Salida:** `resultado_exploracion_dirigida.xlsx`.
 
-### 5. Análisis de sensibilidad de los descriptores
+### 4. Análisis de sensibilidad de los descriptores
 
 ```bash
 python sensibilidad_descriptores.py
 ```
 
+En Colab: `!python sensibilidad_descriptores.py`
+
 Los tres descriptores temáticos no equidistan del descriptor general del dominio, lo que otorga ventaja al tecnicista. El script cuantifica qué parte de esa ventaja corresponde a la geometría del descriptor y qué parte a la señal del corpus, y repite la clasificación con las dimensiones estandarizadas.
 
 **Salida:** `resultado_sensibilidad_descriptores.xlsx`.
 
-### 5b. Sensibilidad del umbral de pertinencia
+### 5. Sensibilidad del umbral de pertinencia
 
 ```bash
 python sensibilidad_umbral.py
 ```
+
+En Colab: `!python sensibilidad_umbral.py`
 
 El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`.
 
@@ -232,15 +236,15 @@ La progresión es monótona en los cinco umbrales. Con el corte más exigente la
 
 **Salidas:** `umbral_distribucion.csv`, `umbral_sensibilidad.csv`, `umbral_frontera_muestra.csv`, `umbral_robustez_figura3.csv`.
 
----
-
 ### 6. Ejes empíricos: cómo se produce el conocimiento
 
 ```bash
 python validar_ejes_empiricos.py
 ```
 
-Los pasos 1 a 6 miden de qué trata cada documento. Los ejes empíricos miden cómo se produjo el conocimiento, mediante tres descriptores redactados con fronteras mutuas y compuestos únicamente por procedimientos:
+En Colab: `!python validar_ejes_empiricos.py`
+
+Los pasos 1 a 5 miden de qué trata cada documento. Los ejes empíricos miden cómo se produjo el conocimiento, mediante tres descriptores redactados con fronteras mutuas y compuestos únicamente por procedimientos:
 
 | Eje | Contenido |
 |---|---|
@@ -285,6 +289,36 @@ Con la caché construida, este paso requiere un par de minutos.
 
 ---
 
+### 7. Figuras y tablas finales
+
+```bash
+python figuras.py
+```
+
+En Colab:
+
+```python
+!python figuras.py
+```
+
+Tres figuras independientes sobre el mismo universo de 42.208 documentos, ya con las orientaciones y los ejes empíricos del paso 6 definidos: el número anual de documentos por orientación; su peso relativo, con la banda 60-70 % sombreada; y la posición media de cada orientación dentro de cada eje empírico, expresada en percentiles del propio eje, con los ejes ordenados por cercanía a la persona.
+
+Requiere `dimensiones.xlsx` (paso 1).
+
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
+
+Para ver las tres figuras en Colab, en otra celda:
+
+```python
+from IPython.display import Image, display
+
+display(Image("outputs/figures/figura1_volumen.png"))
+display(Image("outputs/figures/figura2_composicion.png"))
+display(Image("outputs/figures/figura3_ejes.png"))
+```
+
+---
+
 ## Archivos de este repositorio
 
 | Archivo | Función |
@@ -292,11 +326,11 @@ Con la caché construida, este paso requiere un par de minutos.
 | `parse_scopus.py` | Utilidad: repara y parsea los CSV de Scopus. No se ejecuta de forma independiente. |
 | `run_dimension_embeddings.py` | Paso 1 |
 | `clasificar_embeddings_preponderante.py` | Paso 2 |
-| `figuras.py` | Paso 3: las tres figuras en `outputs/figures/` y las dos tablas anuales en `outputs/tables/` |
-| `exploracion_dirigida.py` | Paso 4 |
-| `sensibilidad_descriptores.py` | Paso 5 |
-| `sensibilidad_umbral.py` | Paso 5b |
+| `exploracion_dirigida.py` | Paso 3 |
+| `sensibilidad_descriptores.py` | Paso 4 |
+| `sensibilidad_umbral.py` | Paso 5 |
 | `validar_ejes_empiricos.py` | Paso 6 |
+| `figuras.py` | Paso 7: las tres figuras en `outputs/figures/` y las dos tablas anuales en `outputs/tables/` |
 | `generar_dataset_derivado.py` | Construye `data/derived/documentos_scores.csv.gz` |
 | `generar_identificadores.py` | Construye `data/derived/corpus_identificadores.csv.gz` (EID y DOI) |
 | `cargar_corpus.py` | Utilidad: toma `dimensiones.xlsx` si existe y, si no, el dataset derivado publicado |
