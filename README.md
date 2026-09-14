@@ -104,7 +104,7 @@ Los cuatro CSV de Scopus deben situarse en la misma carpeta que los scripts.
 
 ### En Google Colab
 
-Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus: es lo que obtiene cualquier persona que solo tiene el repositorio):
+Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus):
 
 ```python
 !git clone https://github.com/afelipemesa/movilidad-urbana.git
