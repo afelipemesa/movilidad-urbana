@@ -94,6 +94,8 @@ Scopus limita cada descarga a 20.000 registros, por lo que el corpus se exportó
 ## Instalación
 
 ```bash
+git clone https://github.com/afelipemesa/movilidad-urbana.git
+cd movilidad-urbana
 python -m venv venv
 venv\Scripts\activate          # Windows
 source venv/bin/activate       # macOS / Linux
@@ -101,6 +103,24 @@ pip install -r requirements.txt
 ```
 
 Los cuatro CSV de Scopus deben situarse en la misma carpeta que los scripts.
+
+### En Google Colab
+
+Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus — es lo que obtiene cualquier persona que solo tiene el repositorio):
+
+```python
+!git clone https://github.com/afelipemesa/movilidad-urbana.git
+%cd movilidad-urbana
+!pip install -q -r requirements.txt
+!python reproducir_resultados.py
+```
+
+Para ver una figura generada, en otra celda:
+
+```python
+from IPython.display import Image
+Image("outputs/figures/figura2_composicion.png")
+```
 
 ### Entorno de ejecución recomendado
 
