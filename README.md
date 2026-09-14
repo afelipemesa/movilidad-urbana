@@ -78,9 +78,13 @@ La definición vigente es `descriptors/dimensiones.json`. Las versiones anterior
 Consulta ejecutada en Scopus:
 
 ```
-TITLE-ABS-KEY("urban mobility" OR "urban transport" OR "urban transportation")
-AND PUBYEAR > 2005 AND PUBYEAR < 2026
-AND DOCTYPE(ar)
+TITLE-ABS-KEY(
+  "urban mobility"
+  OR "urban transport"
+  OR "urban transportation"
+)
+AND PUBYEAR > 2005
+AND PUBYEAR < 2026
 ```
 
 Scopus limita cada descarga a 20.000 registros: por eso el corpus se exportó en cuatro tramos (`2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv`) con los campos de título, año y resumen. Total: **53.105 artículos**.
