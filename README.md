@@ -176,9 +176,9 @@ Estos tres pasos son exactamente lo que corre `python reproducir_resultados.py` 
 
 ### Replicar el pipeline completo desde Scopus (opcional)
 
-Esta sección solo hace falta si quieres repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus para descargar los cuatro CSV originales (sección «Obtención del corpus», más arriba); no es necesaria para reproducir los resultados publicados, que ya cubrió la sección anterior.
+Esta sección solo es necesaria para repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus para descargar los cuatro CSV originales (sección «Obtención del corpus», más arriba); no es necesaria para reproducir los resultados publicados, que ya cubre la sección anterior.
 
-Con los cuatro CSV descargados, súbelos a la carpeta del repositorio antes del paso 1: en Colab, arrástralos al panel de archivos (ícono de carpeta, en el margen izquierdo) hasta `movilidad-urbana/`, o cópialos ahí desde Google Drive si lo montaste. En local, basta con dejarlos en la misma carpeta que los scripts.
+Los cuatro CSV descargados deben situarse, antes del paso 1, en la copia local del repositorio de cada quien. Nunca en el repositorio de GitHub: los CSV de Scopus no se suben ni se comparten ahí, solo se usan en local, igual que en el resto del repositorio. En Colab, la copia local es la carpeta `movilidad-urbana/` que crea el propio clon dentro de esa sesión: los CSV se arrastran al panel de archivos (ícono de carpeta, en el margen izquierdo) hasta esa carpeta, o se copian ahí desde Google Drive si se ha montado. En instalación local, basta con dejarlos en la misma carpeta que los scripts, en el propio computador.
 
 **Paso 1. Similitud semántica de cada documento con cada descriptor**
 
@@ -370,7 +370,7 @@ display(Image("outputs/figures/figura2_composicion.png"))
 display(Image("outputs/figures/figura3_ejes.png"))
 ```
 
-**Reconstruir los archivos ya publicados (opcional).** `generar_dataset_derivado.py` y `generar_identificadores.py` no son parte del análisis en sí: son los scripts con los que se construyeron `data/derived/documentos_scores.csv.gz` y `data/derived/corpus_identificadores.csv.gz`, ya publicados en el repositorio. Solo hace falta correrlos si quieres reconstruir esos archivos tú mismo a partir de tu propio `dimensiones.xlsx` (el segundo también necesita los cuatro CSV de Scopus); están documentados en «Reconstrucción del corpus», más arriba.
+**Reconstruir los archivos ya publicados (opcional).** `generar_dataset_derivado.py` y `generar_identificadores.py` no son parte del análisis en sí: son los scripts con los que se construyeron `data/derived/documentos_scores.csv.gz` y `data/derived/corpus_identificadores.csv.gz`, ya publicados en el repositorio. Solo es necesario ejecutarlos para reconstruir esos archivos a partir del propio `dimensiones.xlsx` (el segundo también necesita los cuatro CSV de Scopus); están documentados en «Reconstrucción del corpus», más arriba.
 
 Con `dimensiones.xlsx` ya generado (paso 1), `!python reproducir_resultados.py` encadena automáticamente los pasos 3, 5, 6 y 7 de este recorrido, además de los dos scripts de reconstrucción. `clasificar_embeddings_preponderante.py` (paso 2) y `sensibilidad_descriptores.py` (paso 4) son diagnósticos aparte y se ejecutan por separado, como arriba.
 
