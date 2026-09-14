@@ -12,7 +12,7 @@ El análisis mide qué orientaciones analíticas predominan en la literatura cie
 
 No se incluyen los CSV de Scopus (173 MB), los embeddings cacheados (407 MB) ni los Excel de resultados (30-45 MB cada uno): superan los límites de GitHub y, en el caso de Scopus, su redistribución no está permitida.
 
-Sí se incluye todo lo que define el análisis —código y descriptores— y un dataset derivado que permite auditar los resultados sin reejecutar el cálculo de embeddings:
+Sí se incluye todo lo que define el análisis (código y descriptores) y un dataset derivado que permite auditar los resultados sin reejecutar el cálculo de embeddings:
 
 | Ruta | Contenido |
 |---|---|
@@ -32,17 +32,15 @@ No recalcula embeddings, y funciona de dos maneras según lo que haya en la carp
 
 **En un clon limpio**, partiendo solo de `data/derived/documentos_scores.csv.gz`, regenera las dos figuras del artículo, la Tabla 1 y las tablas de percentiles, concentración, correlaciones y sensibilidad del umbral. Es decir, todas las cifras del artículo que se calculan sobre las puntuaciones. Las tablas resultantes son idénticas a las publicadas aquí.
 
-**Con `dimensiones.xlsx` presente** —la salida completa del paso 1, que no se publica— regenera además lo que exige el texto de los documentos: la prueba de validación de los ejes, la muestra de frontera del umbral, la exploración bibliográfica dirigida y el propio dataset derivado. Los pasos que no pueden correr se omiten indicándolo.
+**Con `dimensiones.xlsx` presente** (la salida completa del paso 1, que no se publica) regenera además lo que exige el texto de los documentos: la prueba de validación de los ejes, la muestra de frontera del umbral, la exploración bibliográfica dirigida y el propio dataset derivado. Los pasos que no pueden correr se omiten indicándolo.
 
 ### Qué se puede comprobar y qué no
 
-La terminología importa, porque «reproducible» y «replicable» no significan lo mismo:
+La terminología importa, porque «reproducible» y «replicable» no significan lo mismo, y este repositorio ofrece cosas distintas en cada nivel.
 
-- **Reproducibilidad computacional.** Las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin acceso a Scopus. Esto es posible hoy con un clon del repositorio.
-- **Trazabilidad del corpus.** Los 53.105 documentos quedan identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI.
-- **Reconstrucción del corpus fuente.** Quien tenga acceso a Scopus puede recuperar exactamente los registros utilizados y repetir el proceso completo, incluido el cálculo de embeddings.
+Con un clon de hoy ya se puede comprobar la reproducibilidad computacional: las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin necesidad de acceso a Scopus. También queda garantizada la trazabilidad del corpus, porque los 53.105 documentos están identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI. La reconstrucción del corpus fuente exige más: solo quien tenga acceso a Scopus puede recuperar los registros exactos y repetir el proceso completo, incluido el cálculo de embeddings.
 
-Lo que no puede hacerse desde el repositorio es buscar palabras dentro de los documentos —la exploración bibliográfica dirigida y la prueba de validación de los ejes—, porque eso requiere los títulos y resúmenes, que no se redistribuyen.
+Lo que no puede hacerse desde el repositorio es buscar palabras dentro de los documentos (la exploración bibliográfica dirigida y la prueba de validación de los ejes), porque eso requiere los títulos y resúmenes, que no se redistribuyen.
 
 El dataset derivado no contiene títulos ni resúmenes: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
 
@@ -50,11 +48,11 @@ El dataset derivado no contiene títulos ni resúmenes: únicamente un índice d
 
 Los CSV exportados de Scopus no se redistribuyen. En su lugar se publica `data/derived/corpus_identificadores.csv.gz`, con el EID de Scopus y el DOI de cada uno de los 53.105 documentos: el EID está presente en el 100 % de los registros y el DOI en el 92,3 %. Los identificadores son referencias, no contenido con licencia.
 
-Cualquier persona con acceso a Scopus puede así recuperar los documentos uno a uno y verificar que su corpus es el mismo, comparando el SHA-256 del título normalizado con la columna `title_hash`. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`, de modo que se unen por cualquiera de las dos columnas.
+Cualquier persona con acceso a Scopus puede así recuperar los documentos uno a uno y verificar que su corpus es el mismo, comparando el SHA-256 del título normalizado con la columna `title_hash`. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`: se pueden unir por cualquiera de las dos columnas.
 
 El archivo `corpus_identificadores.csv.gz` permite identificar y reconstruir el corpus original sin redistribuir títulos ni resúmenes de Scopus. La correspondencia con el dataset derivado se verificó para los 53.105 registros mediante `title_hash` y año.
 
-Lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 —261 duplicados retirados—, y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
+Lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 (261 duplicados retirados), y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
 
 ### Construcción de `doc_id`
 
@@ -69,7 +67,7 @@ Corresponde al número de fila del corpus una vez construido, y el corpus se con
 
 La repetición de esos pasos reproduce exactamente la misma numeración.
 
-Cada registro incluye además `title_hash`, el SHA-256 del título normalizado, que permite verificar la correspondencia documento a documento —y comprobar que un corpus descargado posteriormente coincide con el aquí descrito— sin que el repositorio publique ningún título.
+Cada registro incluye además `title_hash`, el SHA-256 del título normalizado, que permite verificar la correspondencia documento a documento, y comprobar que un corpus descargado posteriormente coincide con el aquí descrito, sin que el repositorio publique ningún título.
 
 ### Archivo de descriptores vigente
 
@@ -85,9 +83,9 @@ AND PUBYEAR > 2005 AND PUBYEAR < 2026
 AND DOCTYPE(ar)
 ```
 
-Scopus limita cada descarga a 20.000 registros, por lo que el corpus se exportó en cuatro tramos (`2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv`) con los campos de título, año y resumen. Total: **53.105 artículos**.
+Scopus limita cada descarga a 20.000 registros: por eso el corpus se exportó en cuatro tramos (`2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv`) con los campos de título, año y resumen. Total: **53.105 artículos**.
 
-**Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua, de modo que una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
+**Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua y una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
 
 ---
 
@@ -106,7 +104,7 @@ Los cuatro CSV de Scopus deben situarse en la misma carpeta que los scripts.
 
 ### En Google Colab
 
-Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus — es lo que obtiene cualquier persona que solo tiene el repositorio):
+Para probar el clon limpio sin instalar nada localmente (sin `dimensiones.xlsx` ni los CSV de Scopus: es lo que obtiene cualquier persona que solo tiene el repositorio):
 
 ```python
 !git clone https://github.com/afelipemesa/movilidad-urbana.git
@@ -126,7 +124,7 @@ Image("outputs/figures/figura2_composicion.png")
 
 El paso 1 es el único costoso. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello el paso 1 baja de unas nueve horas en CPU a unos veinte o treinta minutos.
 
-Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, de modo que los embeddings sobrevivan al cierre de la sesión:
+Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, para que los embeddings sobrevivan al cierre de la sesión:
 
 ```python
 from google.colab import drive
@@ -147,11 +145,11 @@ python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024
 
 Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
 
-**Tiempo de cómputo:** unas nueve horas en CPU —28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes— frente a veinte o treinta minutos en GPU.
+**Tiempo de cómputo:** unas nueve horas en CPU (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes) frente a veinte o treinta minutos en GPU.
 
-El parámetro `--embeddings-cache cache/` almacena los embeddings de los documentos, que son la parte costosa del cálculo. Una vez construida la caché, cualquier modificación posterior de los descriptores se resuelve en segundos, ya que solo deben recalcularse los vectores de los descriptores y los productos coseno. La caché se valida mediante una huella SHA-256 del corpus, por lo que se invalida automáticamente si cambian los documentos de entrada.
+El parámetro `--embeddings-cache cache/` almacena los embeddings de los documentos, que son la parte costosa del cálculo. Una vez construida la caché, cualquier modificación posterior de los descriptores se resuelve en segundos: solo hay que recalcular los vectores de los descriptores y los productos coseno. La caché se valida mediante una huella SHA-256 del corpus y se invalida automáticamente si cambian los documentos de entrada.
 
-**Salida:** `dimensiones.xlsx` — hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
+**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
 
 ### 2. Clasificación preponderante
 
@@ -173,7 +171,7 @@ Tres figuras independientes sobre el mismo universo de 42.208 documentos: el nú
 
 Requiere `dimensiones.xlsx` (paso 1).
 
-**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla —es `tabla1_quinquenios.csv`— y las otras dos corresponden a las Figuras 1 y 2.
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
 
 ### 4. Exploración bibliográfica dirigida
 
@@ -185,7 +183,7 @@ Busca literalmente en el corpus las raíces `ethic*`, `moral*`, `responsib*`, `o
 
 Sobre los 42.208 documentos del periodo 2006-2025, los resultados son: 196 documentos (0,5 %) mencionan la ética o la moral; 735 (1,7 %) la responsabilidad; 51 emplean alguna de las tres expresiones de justicia, de los cuales 48 son posteriores a 2018 y únicamente 2 mencionan también la responsabilidad; y ninguno menciona a Emmanuel Levinas.
 
-El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones registradas, 72 corresponden a documentos de orientación tecnicista y remiten a ontologías de datos en el sentido informático, no filosófico, por lo que el término no discrimina lo que aparenta discriminar.
+El recuento de `ontolog*` no se utiliza en el artículo. De las 95 apariciones registradas, 72 corresponden a documentos de orientación tecnicista y remiten a ontologías de datos en el sentido informático, no filosófico: el término no discrimina lo que aparenta discriminar.
 
 **Salida:** `resultado_exploracion_dirigida.xlsx`.
 
@@ -225,7 +223,7 @@ El predominio tecnicista se mantiene entre el 60 % y el 66 % para umbrales de 0,
 
 Por debajo de 0,30 el filtro opera correctamente (compresión de datos LiDAR, intercambiadores de calor para diésel, enjambres de drones). Entre 0,32 y 0,35 se pierden trabajos que sí pertenecen al dominio (predicción de flujo de tráfico, cambio de carril, vibración ferroviaria). Entre 0,35 y 0,38 ingresan trabajos urbanos ajenos a la movilidad (contaminación de suelos, metabolismo del agua, confort térmico, ventanas inteligentes).
 
-La banda 0,32-0,38 resulta mixta en ambos sentidos, como ocurriría con cualquier umbral, dado que es allí donde el dominio se difumina. En la muestra los falsos negativos son de orientación tecnicista y los falsos positivos ambientales ajenos a la movilidad, lo que sugiere —sin demostrarlo— que rebajar el corte incorporaría más tecnicismo del que excluiría. Esa lectura solo puede contrastarse con la tabla de sensibilidad anterior, que cubre el corpus completo: con umbral 0,30 la proporción tecnicista asciende al 66,3 % y con 0,50 desciende al 56,0 %.
+La banda 0,32-0,38 resulta mixta en ambos sentidos, como ocurriría con cualquier umbral, porque es allí donde el dominio se difumina. En la muestra los falsos negativos son de orientación tecnicista y los falsos positivos ambientales ajenos a la movilidad, lo que sugiere, sin demostrarlo, que rebajar el corte incorporaría más tecnicismo del que excluiría. Esa lectura solo puede contrastarse con la tabla de sensibilidad anterior, que cubre el corpus completo: con umbral 0,30 la proporción tecnicista asciende al 66,3 % y con 0,50 desciende al 56,0 %.
 
 **Robustez de los ejes empíricos.** El resultado del paso 6 se recalcula íntegramente con cada umbral. Brecha social-humana menos tecnicista, en puntos de percentil:
 
@@ -261,7 +259,7 @@ Se calculan en el paso 1, junto con los descriptores temáticos, y son transvers
 
 La distinción entre el segundo y el tercer eje es de orden epistemológico: en una encuesta origen-destino hay una persona delante a la que se pregunta, pero el instrumento fija de antemano lo que esa persona puede responder. Observar, preguntar mediante categorías previas y abrirse al relato producen conocimientos distintos.
 
-La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno: la posición media de cada orientación dentro del ordenamiento de cada eje. Al operar sobre rangos, la medida resulta comparable entre ejes —elimina el efecto de que cada descriptor se sitúe a distinta distancia del dominio— y no depende de dónde se fije un umbral.
+La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno: la posición media de cada orientación dentro del ordenamiento de cada eje. Al operar sobre rangos, la medida resulta comparable entre ejes (elimina el efecto de que cada descriptor se sitúe a distinta distancia del dominio) y no depende de dónde se fije un umbral.
 
 | | Observación | Interacción estructurada | Interacción experiencial |
 |---|---|---|---|
@@ -270,11 +268,11 @@ La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno
 | Social-humana | 65,1 | 72,4 | 82,7 |
 | **Brecha social-humana − tecnicista** | **18,6** | **28,8** | **41,4** |
 
-La misma progresión se obtiene con otras tres medidas: media tipificada (−0,12 / −0,22 / −0,31 frente a +0,51 / +0,79 / +1,21), decil superior (8,5 / 6,2 / 3,3 frente a 17,2 / 26,3 / 41,1) y tamaño del efecto (d de Cohen 0,64 / 1,08 / 1,83), de modo que no depende del estadístico elegido.
+La misma progresión se obtiene con otras tres medidas: media tipificada (−0,12 / −0,22 / −0,31 frente a +0,51 / +0,79 / +1,21), decil superior (8,5 / 6,2 / 3,3 frente a 17,2 / 26,3 / 41,1) y tamaño del efecto (d de Cohen 0,64 / 1,08 / 1,83): no depende del estadístico elegido.
 
 **Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada.
 
-**Separación entre los ejes.** Coseno entre descriptores: observación ↔ estructurada 0,603; observación ↔ experiencial 0,685; estructurada ↔ experiencial 0,596, de manera que el par que resultaba necesario distinguir es el más separado. Correlación documental parcial, controlando pertinencia: 0,197, 0,431 y 0,348. Solapamiento del top-20 entre los tres ejes: 0, 1 y 0 documentos.
+**Separación entre los ejes.** Coseno entre descriptores: observación ↔ estructurada 0,603; observación ↔ experiencial 0,685; estructurada ↔ experiencial 0,596: el par que resultaba necesario distinguir es el más separado. Correlación documental parcial, controlando pertinencia: 0,197, 0,431 y 0,348. Solapamiento del top-20 entre los tres ejes: 0, 1 y 0 documentos.
 
 Correlación parcial de cada eje con las orientaciones, controlando pertinencia:
 
