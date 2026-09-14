@@ -87,6 +87,8 @@ Scopus limita cada descarga a 20.000 registros: por eso el corpus se exportó en
 
 **Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua y una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
 
+Quien repita esta consulta hoy obtendrá más de 53.105 registros, y es probable que necesite más de cuatro tramos para descargarlos todos (el límite de Scopus son 20.000 registros por descarga). Eso no es un problema: como se explica en «Paso 1» más abajo, el script que combina los archivos acepta cualquier cantidad, con cualquier nombre.
+
 ---
 
 ## Instalación
@@ -192,7 +194,9 @@ En Colab:
 !python run_dimension_embeddings.py --input "2006-2019.csv" "2020-2023.csv" "2024-2025.csv" "2026.csv" --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
 ```
 
-Combina los cuatro archivos, elimina duplicados por título (261 en la corrida original) y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
+Los cuatro nombres después de `--input` son los del corpus original (sección «Obtención del corpus», más arriba). El parámetro acepta cualquier cantidad de archivos, con cualquier nombre: quien tenga un número distinto de CSV, o los haya llamado de otra forma, simplemente reemplaza esos cuatro nombres por los suyos, separados por espacio y en el orden en que quiera concatenarlos.
+
+Combina los archivos indicados y elimina duplicados por título. En la corrida original, con los cuatro archivos del corpus descrito en «Obtención del corpus», eso dejó 53.105 documentos (261 duplicados retirados); con un corpus distinto, las cifras varían en la misma proporción. Sobre el corpus resultante, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
 
 Es el único paso costoso, y el único que se beneficia de GPU. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello baja de unas nueve horas en CPU a unos veinte o treinta minutos (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes, en CPU).
 
