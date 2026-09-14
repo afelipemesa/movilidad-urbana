@@ -1,6 +1,6 @@
 # Una mirada ética al estudio de la movilidad
 
-Código y descriptores del análisis bibliométrico-semántico del artículo *«Una mirada ética al estudio de la movilidad: de cuestión tecnicista a fenómeno humano»*.
+Código y descriptores del análisis bibliométrico-semántico del artículo *«Una mirada ética al estudio de la movilidad: de cuestión tecnicista a fenómeno humanista»*.
 
 El análisis mide qué orientaciones analíticas predominan en la literatura científica sobre movilidad urbana indexada en Scopus entre 2006 y 2025, y con qué formas de producir conocimiento se construye esa literatura.
 
