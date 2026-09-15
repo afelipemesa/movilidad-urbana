@@ -1,12 +1,19 @@
-# Los CSV se ignoran por defecto, excepto el corpus publicado
-*.csv
-!data/corpus/*.csv
+# CSV sueltos en la raiz del repo (p. ej. una descarga propia de Scopus
+# para replicar con datos mas recientes): no se versionan. El corpus
+# del articulo SI se versiona, pero vive en data/corpus/, no en la raiz.
+/*.csv
 
 # Embeddings cacheados (~400 MB): se regeneran en la primera corrida.
 cache/
 
-# Resultados intermedios y finales (decenas de MB): se regeneran.
+# Salida completa del paso 1 (30-45 MB): se regenera con
+# reproducir_resultados.py a partir de data/corpus/.
 *.xlsx
+
+# Resultados: ya no se publican precalculados. Se regeneran corriendo
+# el pipeline completo desde data/corpus/ (ver README).
+outputs/
+data/derived/
 
 # Entorno y temporales
 venv/
@@ -14,10 +21,4 @@ venv/
 __pycache__/
 *.pyc
 ~$*
-
-# Lo que SÍ se publica: dataset derivado, tablas y figuras.
-# (reproducible con `python reproducir_resultados.py`)
-!data/derived/*.csv.gz
-!outputs/tables/*.csv
-!outputs/figures/*.png
 *.bat

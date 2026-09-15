@@ -36,6 +36,8 @@ Salida: xlsx con
     el constructo correcto.
 
 USO:
+    python run_dimension_embeddings.py
+        (usa automaticamente los .csv de data/corpus/, en orden alfabetico)
     python run_dimension_embeddings.py --input Scopus.csv --output dimensiones.xlsx
     python run_dimension_embeddings.py --input Scopus.csv --output dimensiones.xlsx --sample 500
     python run_dimension_embeddings.py --input Scopus.csv --output dimensiones.xlsx --min-relevance 0.45
@@ -108,11 +110,13 @@ def corpus_fingerprint(records):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, nargs="+",
-                         help="Ruta a uno o varios Scopus.csv exportados (Scopus limita a 20000 por descarga, "
-                              "asi que si tuviste que partir el corpus en varios archivos por rango de anios, "
-                              "pasalos todos juntos aqui, separados por espacio: "
-                              "--input parte1.csv parte2.csv parte3.csv")
+    parser.add_argument("--input", nargs="+", default=None,
+                         help="Ruta a uno o varios Scopus.csv exportados. Si se omite, se usan "
+                              "automaticamente todos los .csv de data/corpus/, en orden alfabetico "
+                              "(coincide con el orden cronologico de los tramos publicados: "
+                              "2006-2019, 2020-2023, 2024-2025, 2026). Si tuviste que exportar tu "
+                              "propio corpus en varias partes (Scopus limita a 20000 por descarga), "
+                              "puedes seguir pasandolas a mano: --input parte1.csv parte2.csv")
     parser.add_argument("--output", default="dimensiones.xlsx", help="Ruta del xlsx de salida")
     parser.add_argument("--categories-file", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "descriptors", "dimensiones.json"))
     parser.add_argument("--sample", type=int, default=None, help="Si se pasa, procesa una muestra ALEATORIA (semilla fija, reproducible) de N documentos del total combinado -- no los primeros N, porque los CSV de Scopus vienen ordenados por anio y eso sesgaria la muestra hacia un solo rango de anios. Util para pruebas rapidas.")
@@ -124,6 +128,22 @@ def main():
                               "de todos los documentos cuando solo cambias el texto de una categoria en "
                               "descriptors/dimensiones.json -- esa parte tarda segundos, no horas, con el cache activo.")
     args = parser.parse_args()
+
+    if args.input is None:
+        corpus_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "corpus")
+        encontrados = sorted(
+            os.path.join(corpus_dir, f) for f in os.listdir(corpus_dir)
+            if f.lower().endswith(".csv")
+        ) if os.path.isdir(corpus_dir) else []
+        if not encontrados:
+            sys.exit(
+                f"No se paso --input y no hay ningun .csv en {corpus_dir}.\n"
+                "Coloca ahi el corpus (o usa --input archivo1.csv archivo2.csv ...)."
+            )
+        args.input = encontrados
+        print(f"--input no indicado: usando los {len(encontrados)} CSV de data/corpus/:")
+        for f in encontrados:
+            print(f"  - {f}")
 
     from sentence_transformers import SentenceTransformer  # import tardio
 

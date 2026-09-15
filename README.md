@@ -1,6 +1,6 @@
 # Una mirada ética al estudio de la movilidad
 
-Código y descriptores del análisis bibliométrico-semántico del artículo *«Una mirada ética al estudio de la movilidad: de cuestión tecnicista a fenómeno humanista»*.
+Código, descriptores y corpus del análisis bibliométrico-semántico del artículo *«Una mirada ética al estudio de la movilidad: de cuestión tecnicista a fenómeno humanista»*.
 
 El análisis mide qué orientaciones analíticas predominan en la literatura científica sobre movilidad urbana indexada en Scopus entre 2006 y 2025, y con qué formas de producir conocimiento se construye esa literatura.
 
@@ -10,50 +10,30 @@ El análisis mide qué orientaciones analíticas predominan en la literatura cie
 
 ## Contenido del repositorio
 
-Los embeddings cacheados (407 MB) y los Excel de resultados (30-45 MB cada uno) no se incluyen en este repositorio: superan los límites prácticos de GitHub y se regeneran con los scripts aquí publicados. Los CSV de Scopus (173 MB en total, títulos y resúmenes incluidos; ninguno de los cuatro tramos supera individualmente el límite de 100 MB de GitHub) sí se incluyen directamente, en `data/corpus/`: se publican con fines de ciencia abierta y replicabilidad, siguiendo la práctica ya adoptada en otros conjuntos de datos bibliométricos de acceso abierto de escala comparable — p. ej. SESR-Eval (Huotala et al., 2025).
+Se incluye todo lo necesario para reproducir el análisis completo desde el corpus, sin depender de ningún acceso externo: el código, los descriptores y, en `data/corpus/`, el corpus completo de Scopus —los mismos títulos y resúmenes usados en el análisis publicado, no una muestra ni una versión reducida—. Se publica con fines de ciencia abierta, siguiendo la práctica ya adoptada en otros conjuntos de datos bibliométricos de escala comparable (ver «Referencia metodológica», al final de este documento).
 
-Sí se incluye todo lo que define el análisis (código y descriptores) y un dataset derivado que permite auditar los resultados sin reejecutar el cálculo de embeddings:
+No se incluyen resultados ya calculados: ni la salida del cálculo de embeddings, ni las tablas ni las figuras finales. Todo eso se genera corriendo el pipeline sobre el corpus — es la forma de comprobar que el análisis efectivamente sale de esos documentos, y no de un archivo aparte.
 
 | Ruta | Contenido |
 |---|---|
-| `descriptors/dimensiones.json` | Definición vigente de los descriptores. Es el único archivo normativo. |
-| `data/corpus/` | Los cuatro CSV originales de Scopus —título, resumen y año— de los 53.105 documentos: `2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv` (173 MB en total). |
-| `data/derived/documentos_scores.csv.gz` | Un registro por documento (53.105): `doc_id`, `title_hash`, año y similitudes coseno promediadas. |
-| `data/derived/corpus_identificadores.csv.gz` | Identificadores de los mismos 53.105 documentos: `doc_id`, `title_hash`, año, `eid` y `doi`. Complementa el corpus completo con un archivo ligero para verificación rápida sin descargar los 173 MB. |
-| `outputs/tables/` | Tablas de validación, de sensibilidad y las dos tablas anuales de las que sale la Tabla 1 del artículo. |
-| `outputs/figures/` | Figuras. |
+| `descriptors/dimensiones.json` | Definición vigente de los descriptores: pertinencia, tres orientaciones temáticas y tres ejes empíricos. Es el único archivo normativo. |
+| `data/corpus/` | Los cuatro CSV originales de Scopus —título, resumen y año— de los 53.105 documentos: `2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv` (173 MB en total). El artículo solo usa 2006-2025 (46.907 artículos); `2026.csv` se publica aparte, sin entrar en los resultados (ver «Obtención del corpus»). |
 
-El contenido de `outputs/` se regenera con una sola orden:
+Los embeddings cacheados (~400 MB) y la salida completa del paso 1, `dimensiones.xlsx` (30-45 MB), tampoco se incluyen: son subproductos de correr el código sobre el corpus, no un dato de entrada.
+
+### Todo se genera corriendo el pipeline
 
 ```bash
 python reproducir_resultados.py
 ```
 
-No recalcula embeddings, y funciona de dos maneras según lo que haya en la carpeta.
+corre los siete pasos en orden, empezando por `data/corpus/`: calcula los embeddings (único paso lento — ver «Entorno de ejecución recomendado», más abajo), clasifica los documentos, hace la exploración bibliográfica dirigida, los dos análisis de sensibilidad, valida los ejes empíricos y genera las figuras y tablas finales. Si `dimensiones.xlsx` ya existe de una corrida anterior, ese primer paso se salta automáticamente; bórralo para forzar un recálculo completo.
 
-**En un clon limpio**, partiendo solo de `data/derived/documentos_scores.csv.gz`, regenera las dos figuras del artículo, la Tabla 1 y las tablas de percentiles, concentración, correlaciones y sensibilidad del umbral. Es decir, todas las cifras del artículo que se calculan sobre las puntuaciones. Las tablas resultantes son idénticas a las publicadas aquí.
+No hace falta acceso propio a Scopus ni ningún archivo adicional: el corpus ya está en el repositorio.
 
-**Con `dimensiones.xlsx` presente** (la salida completa del paso 1, que no se publica) regenera además lo que exige el texto de los documentos: la prueba de validación de los ejes, la muestra de frontera del umbral, la exploración bibliográfica dirigida y el propio dataset derivado. Los pasos que no pueden correr se omiten indicándolo.
+### Replicar con un corpus nuevo (opcional)
 
-### Qué se puede comprobar y qué no
-
-La terminología importa, porque «reproducible» y «replicable» no significan lo mismo, y este repositorio ofrece cosas distintas en cada nivel.
-
-Con un clon de hoy ya se puede comprobar la reproducibilidad computacional: las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin necesidad de acceso a Scopus ni al corpus completo. También queda garantizada la trazabilidad del corpus, porque los 53.105 documentos están identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI.
-
-Con el corpus completo —incluido directamente en este repositorio, en `data/corpus/` (ver «Disponibilidad y reconstrucción del corpus» más abajo)— la replicabilidad es total: cualquier persona, tenga o no acceso propio a Scopus, puede repetir también la exploración bibliográfica dirigida y la prueba de validación de los ejes, que buscan palabras dentro de los títulos y resúmenes. Lo único que exige tiempo de cómputo considerable, documentado más abajo, es el cálculo de embeddings desde cero (paso 1) — ningún paso exige ya un acceso restringido.
-
-### Disponibilidad y reconstrucción del corpus
-
-El corpus completo —los cuatro CSV exportados de Scopus, con título, resumen y año de los 53.105 documentos (173 MB en total)— se publica directamente en este repositorio, en `data/corpus/`.
-
-Se publica con fines de ciencia abierta y replicabilidad, siguiendo la práctica ya adoptada en otros conjuntos de datos bibliométricos de acceso abierto de escala comparable. El precedente más directo es Huotala, Kuutila y Mäntylä (2025), quienes publicaron el dataset SESR-Eval (34.528 estudios primarios, extraídos en parte vía la API de Scopus), con una declaración explícita de que los datos se comparten para favorecer la ciencia abierta y la reproducibilidad:
-
-> Huotala, A., Kuutila, M., & Mäntylä, M. (2025). *SESR-Eval: Dataset for evaluating LLMs in the title-abstract screening of systematic reviews.* En *Proceedings of the 19th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM '25).* https://doi.org/10.5281/zenodo.16408882
-
-Como complemento, y para quien no necesite el corpus completo, `data/derived/corpus_identificadores.csv.gz` ofrece una versión ligera con el EID de Scopus y el DOI de cada uno de los 53.105 documentos (EID presente en el 100 % de los registros, DOI en el 92,3 %), junto con `title_hash` para verificar rápidamente que una copia obtenida de forma independiente desde Scopus coincide exactamente con la publicada aquí, sin descargar los 173 MB completos. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`: se pueden unir por cualquiera de las dos columnas.
-
-Quien prefiera reconstruir el corpus de forma independiente en lugar de usar el de este repositorio —por ejemplo, para obtener una versión más actualizada de Scopus— puede hacerlo con `generar_identificadores.py`, que reconstruye el corpus a partir de los cuatro CSV originales con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 (261 duplicados retirados), y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
+Lo anterior es reproducción: mismo corpus, mismo código, mismos resultados. Quien en cambio quiera *replicar* el estudio —repetir el procedimiento sobre una extracción propia y más reciente de Scopus, en vez de sobre la de este repositorio— puede hacerlo ejecutando la consulta de «Obtención del corpus» con su propio acceso y pasando esos archivos al paso 1 con `--input` (ver «El proceso, paso a paso»). No hace falta subir esa descarga propia a GitHub: se usa en local, igual que el resto de archivos que produce cada corrida.
 
 ### Construcción de `doc_id`
 
@@ -66,9 +46,7 @@ Corresponde al número de fila del corpus una vez construido, y el corpus se con
    53.105 documentos, numerados 1..53.105
 ```
 
-La repetición de esos pasos reproduce exactamente la misma numeración.
-
-Cada registro incluye además `title_hash`, el SHA-256 del título normalizado, que permite verificar la correspondencia documento a documento, y comprobar que un corpus descargado posteriormente coincide con el aquí descrito, sin que el repositorio publique ningún título.
+La repetición de esos pasos reproduce exactamente la misma numeración. Cada registro incluye además `title_hash`, el SHA-256 del título normalizado, útil para comparar documento a documento con cualquier corpus reconstruido de forma independiente.
 
 ### Archivo de descriptores vigente
 
@@ -76,7 +54,7 @@ La definición vigente es `descriptors/dimensiones.json`. Las versiones anterior
 
 ### Obtención del corpus
 
-Consulta ejecutada en Scopus:
+Consulta ejecutada en Scopus para el corpus analizado en el artículo (2006-2025):
 
 ```
 TITLE-ABS-KEY(
@@ -88,13 +66,13 @@ AND PUBYEAR > 2005
 AND PUBYEAR < 2026
 ```
 
-Scopus limita cada descarga a 20.000 registros: por eso el corpus se exportó en cuatro tramos (`2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv`) con los campos de título, año y resumen. Total: **53.105 artículos**.
+Scopus limita cada descarga a 20.000 registros, así que este tramo se exportó en tres archivos —`2006-2019.csv`, `2020-2023.csv` y `2024-2025.csv`— con los campos de título, año y resumen. Total: **46.907 artículos**, la cifra de la que parte el artículo (ver «Metodología» en el propio texto).
 
-**Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua y una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
+Este repositorio incluye además `2026.csv`, con documentos publicados en lo que va de 2026. **Esta parte no se usó en el análisis del artículo**: 2026 es un año en curso y, por tanto, incompleto, así que se excluyó de los resultados longitudinales para no distorsionar la comparación entre años. Se publica de todos modos, junto al resto del corpus, por transparencia y para mantener el conjunto de datos lo más actualizado posible; quien corra el pipeline completo puede incluirlo o excluirlo según lo que necesite (ver la nota sobre el corte por año en el paso 3, más abajo). Con los cuatro archivos, el corpus publicado en `data/corpus/` suma **53.105 artículos** en total.
 
-Quien repita esta consulta hoy obtendrá más de 53.105 registros, y es probable que necesite más de cuatro tramos para descargarlos todos (el límite de Scopus son 20.000 registros por descarga). Eso no es un problema: como se explica en «Paso 1» más abajo, el script que combina los archivos acepta cualquier cantidad, con cualquier nombre.
+**Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua: una consulta posterior devolverá más registros, tanto para el tramo 2006-2025 como para 2026; esa fecha es la que fija el corpus descrito aquí.
 
-Los cuatro CSV resultantes de esta consulta son exactamente los que se publican en `data/corpus/`, en este mismo repositorio (ver «Disponibilidad y reconstrucción del corpus», más arriba).
+Los cuatro CSV resultantes de esta consulta son exactamente los que se publican en `data/corpus/`, en este mismo repositorio.
 
 ---
 
@@ -109,11 +87,9 @@ source venv/bin/activate       # macOS / Linux
 pip install -r requirements.txt
 ```
 
-Con esto basta para reproducir los resultados del artículo (siguiente sección): no hacen falta los CSV de Scopus. Solo se necesitan para el recorrido opcional que replica el pipeline completo desde cero, descrito más abajo en «Replicar el pipeline completo desde Scopus».
+El corpus ya viene incluido en `data/corpus/`: no hace falta descargar ni aportar ningún archivo propio para reproducir el análisis.
 
 ### En Google Colab
-
-Para reproducir los resultados sin instalar nada localmente:
 
 ```python
 !git clone https://github.com/afelipemesa/movilidad-urbana.git
@@ -122,103 +98,42 @@ Para reproducir los resultados sin instalar nada localmente:
 !python reproducir_resultados.py
 ```
 
-No requiere GPU ni ningún archivo propio: usa exclusivamente lo que ya está publicado en el repositorio. Más abajo, en «El proceso, paso a paso», está este mismo recorrido separado en tres celdas, una por cada cosa que produce.
+El paso de embeddings (el único lento) se beneficia de GPU — ver «Entorno de ejecución recomendado», a continuación. Más abajo, en «El proceso, paso a paso», está este mismo recorrido separado en siete celdas, una por cada script.
 
----
+### Entorno de ejecución recomendado
 
-## El proceso, paso a paso
+El paso 1 (cálculo de embeddings) es el único costoso de todo el pipeline. **Se recomienda correrlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere ninguna modificación: `sentence-transformers` detecta la GPU automáticamente. Con ello baja de unas nueve horas en CPU a veinte o treinta minutos (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes, en CPU).
 
-Hay dos recorridos distintos, y conviene no mezclarlos.
-
-- **Reproducir los resultados del artículo** parte de un clon limpio del repositorio y usa solo lo que ya está publicado (`data/derived/documentos_scores.csv.gz`). Cualquier persona puede hacerlo, sin acceso a Scopus, sin GPU y sin subir ningún archivo propio. Es el recorrido principal, y el que sigue esta sección primero.
-- **Replicar el pipeline completo desde Scopus** repite además el cálculo de embeddings y todo lo que exige el texto de los documentos. Es opcional, y requiere acceso institucional a Scopus para ejecutar ahí la consulta descrita en «Obtención del corpus» y descargar los resultados propios. Aparece después, claramente separado.
-
-### Reproducir los resultados del artículo
-
-Después de la celda de instalación de Colab (sección anterior), estas tres celdas —una por una, en este orden— llegan a las mismas tablas y figuras del artículo. Juntas tardan menos de un minuto.
-
-**Paso 1. Ejes empíricos**
-
-```python
-!python validar_ejes_empiricos.py
-```
-
-Calcula la posición de cada orientación (tecnicista, ambiental, social-humana) dentro de los tres ejes empíricos: observación, interacción estructurada e interacción experiencial. En la consola aparece la tabla de percentiles y la brecha entre la orientación social-humana y la tecnicista.
-
-El dataset publicado no incluye títulos ni resúmenes, así que este paso omite un único resultado —la prueba de validación fijada de antemano con la encuesta origen-destino, que necesita buscar palabras en el texto— y lo indica con un aviso `[omitido]`. El resto (percentiles, medias, correlaciones) sale completo y es idéntico a lo publicado.
-
-**Salida:** `resultado_validacion_ejes.xlsx` y las tablas correspondientes en `outputs/tables/`.
-
-**Paso 2. Sensibilidad del umbral de pertinencia**
-
-```python
-!python sensibilidad_umbral.py
-```
-
-Repite el análisis con distintos valores del umbral de pertinencia (0,30 a 0,50) y muestra cómo cambian tanto las proporciones de cada orientación como la brecha de los ejes empíricos del paso anterior. Igual que en el paso 1, omite con aviso el único resultado que necesita texto —la muestra de títulos en la frontera del umbral— y calcula todo lo demás.
-
-**Salidas:** `umbral_distribucion.csv`, `umbral_sensibilidad.csv`, `umbral_robustez_figura3.csv`, en `outputs/tables/`.
-
-**Paso 3. Figuras y tabla final**
-
-```python
-!python figuras.py
-```
-
-Genera las tres figuras del artículo y las dos tablas de las que sale la Tabla 1, a partir de las orientaciones y los ejes empíricos que calcularon los dos pasos anteriores.
-
-**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, la primera se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
-
-Para verlas en Colab, en otra celda:
-
-```python
-from IPython.display import Image, display
-
-display(Image("outputs/figures/figura1_volumen.png"))
-display(Image("outputs/figures/figura2_composicion.png"))
-display(Image("outputs/figures/figura3_ejes.png"))
-```
-
-Estos tres pasos son exactamente lo que corre `python reproducir_resultados.py` de un solo golpe (sección «Contenido del repositorio»): aquí van uno por uno para ver qué produce cada uno.
-
----
-
-### Replicar el pipeline completo desde Scopus (opcional)
-
-Esta sección solo es necesaria para repetir el análisis desde cero, incluido el cálculo de embeddings. Requiere acceso institucional a Scopus: cada quien ejecuta ahí, con su propia cuenta, la consulta descrita en «Obtención del corpus» (más arriba) y descarga sus propios resultados, tantos archivos como le exija el límite de Scopus, no necesariamente cuatro. Esta sección no es necesaria para reproducir los resultados publicados, que ya cubre la sección anterior.
-
-Los CSV que descargues en este paso —normalmente más numerosos que los 53.105 originales, porque Scopus se actualiza de forma continua— son tu propia consulta, distinta de la ya publicada en `data/corpus/`. Sitúalos, antes del paso 1, en tu copia local del repositorio: no hace falta subir esta descarga propia a GitHub, basta con guardarla en local, igual que el resto de archivos que produce cada ejecución. En Colab, la copia local es la carpeta `movilidad-urbana/` que crea el propio clon dentro de esa sesión: los CSV se arrastran al panel de archivos (ícono de carpeta, en el margen izquierdo) hasta esa carpeta, o se copian ahí desde Google Drive si se ha montado. En instalación local, basta con dejarlos en la misma carpeta que los scripts, en el propio computador.
-
-**Paso 1. Similitud semántica de cada documento con cada descriptor**
-
-```bash
-python run_dimension_embeddings.py --input *.csv --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
-```
-
-En Colab:
-
-```python
-!python run_dimension_embeddings.py --input *.csv --output dimensiones.xlsx --categories-file descriptors/dimensiones.json --embeddings-cache cache/
-```
-
-`*.csv` toma automáticamente todos los archivos CSV que haya en la carpeta, sean cuatro, uno o los que sean: no hace falta escribir sus nombres. (Si algún nombre tiene espacios —algo frecuente en las descargas de Scopus, del tipo `scopus (1).csv`— hay que quitarlos antes de correr esta celda, porque si no cada espacio se lee como si fuera un archivo aparte: en el panel de archivos de Colab, clic derecho sobre el archivo → *Rename*.)
-
-Si se prefiere fijar a mano el orden en que se combinan los archivos, se pueden escribir los nombres uno por uno en vez de `*.csv`, separados por espacio: `--input "archivo1.csv" "archivo2.csv"`.
-
-Combina los archivos indicados y elimina duplicados por título. En la corrida original, con los cuatro archivos del corpus descrito en «Obtención del corpus», eso dejó 53.105 documentos (261 duplicados retirados); con un corpus distinto, las cifras varían en la misma proporción. Sobre el corpus resultante, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
-
-Es el único paso costoso, y el único que se beneficia de GPU. **Se recomienda ejecutarlo en Google Colab con entorno de ejecución GPU** (menú *Entorno de ejecución → Cambiar tipo de entorno de ejecución → Acelerador por hardware: GPU). El código no requiere modificación alguna: `sentence-transformers` detecta la GPU de forma automática. Con ello baja de unas nueve horas en CPU a unos veinte o treinta minutos (28 minutos el modelo pequeño y alrededor de cuatro horas cada uno de los dos grandes, en CPU).
-
-Al trabajar en Colab conviene montar Google Drive y dirigir allí tanto los CSV de entrada como la carpeta `cache/`, para que los embeddings sobrevivan al cierre de la sesión:
+Al trabajar en Colab conviene montar Google Drive y dirigir ahí la carpeta `cache/`, para que los embeddings sobrevivan al cierre de la sesión:
 
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
 ```
 
-El parámetro `--embeddings-cache cache/` almacena los embeddings de los documentos, que son la parte costosa del cálculo. Una vez construida la caché, cualquier modificación posterior de los descriptores se resuelve en segundos: solo hay que recalcular los vectores de los descriptores y los productos coseno. La caché se valida mediante una huella SHA-256 del corpus y se invalida automáticamente si cambian los documentos de entrada.
+Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
 
-**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes. Los pasos 2 a 7 se ejecutan en segundos o minutos y no requieren GPU.
+---
+
+## El proceso, paso a paso
+
+Siete pasos, siempre en este orden, todos partiendo de `data/corpus/`. `python reproducir_resultados.py` (sección «Todo se genera corriendo el pipeline») los encadena automáticamente; aquí van uno por uno para ver qué produce cada uno.
+
+**Paso 1. Similitud semántica de cada documento con cada descriptor**
+
+```bash
+python run_dimension_embeddings.py
+```
+
+En Colab: `!python run_dimension_embeddings.py`
+
+Sin `--input`, toma automáticamente los cuatro CSV de `data/corpus/`, en orden alfabético. Para usar un corpus propio en su lugar (ver «Replicar con un corpus nuevo», más arriba), se pasa explícitamente: `--input archivo1.csv archivo2.csv`. Si algún nombre tiene espacios —frecuente en descargas de Scopus, del tipo `scopus (1).csv`— conviene quitarlos antes, porque si no cada espacio se lee como si fuera un archivo aparte.
+
+Combina los archivos, elimina duplicados por título y, sobre los 53.105 documentos resultantes, calcula con tres modelos de *sentence-transformers* (`all-MiniLM-L6-v2`, `all-mpnet-base-v2`, `allenai-specter`) la similitud coseno de cada título + resumen frente a los descriptores de `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres temáticos (tecnicista, ambiental, social-humana) y tres ejes empíricos (paso 6). Sigue el protocolo de cribado de Marin-Garcia et al. (2024).
+
+El parámetro `--embeddings-cache cache/` (activo por defecto en `reproducir_resultados.py`, opcional si se corre este script suelto) guarda los embeddings de los documentos, la parte costosa del cálculo: una vez construida la caché, cualquier cambio posterior en los descriptores se resuelve en segundos. La caché se valida con una huella SHA-256 del corpus y se invalida sola si cambian los documentos de entrada.
+
+**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
 
 **Paso 2. Clasificación preponderante**
 
@@ -268,7 +183,7 @@ python sensibilidad_umbral.py
 
 En Colab: `!python sensibilidad_umbral.py`
 
-El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`. Con `dimensiones.xlsx` presente, esta versión completa incluye además la muestra de frontera con títulos reales, que el recorrido público omite.
+El valor 0,35 no constituye un estándar de *sentence-transformers*, sino un umbral operativo definido para este corpus. El script lo somete a tres pruebas y deposita las tablas en `outputs/tables/`.
 
 **Posición del umbral.** El coseno observado no recorre el intervalo 0-1, sino de 0,065 a 0,806, con media 0,502 y desviación típica 0,113. El valor 0,35 se sitúa en el percentil 10,3, a 1,3 desviaciones por debajo de la media: recorta la décima parte menos pertinente del corpus, y no representa «un parecido del 35 %».
 
@@ -335,7 +250,7 @@ La medida empleada son percentiles sobre los 42.208 documentos, sin corte alguno
 
 La misma progresión se obtiene con otras tres medidas: media tipificada (−0,12 / −0,22 / −0,31 frente a +0,51 / +0,79 / +1,21), decil superior (8,5 / 6,2 / 3,3 frente a 17,2 / 26,3 / 41,1) y tamaño del efecto (d de Cohen 0,64 / 1,08 / 1,83): no depende del estadístico elegido.
 
-**Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada. Esta prueba —a diferencia del resto del paso— solo puede evaluarse con `dimensiones.xlsx`, porque busca palabras en el texto de los documentos.
+**Prueba de validación fijada de antemano.** Los documentos que mencionan encuestas origen-destino deben concentrarse en el decil superior de `INTERACCION_ESTRUCTURADA` y no en los otros dos; los de método cualitativo, en `INTERACCION_EXPERIENCIAL`; los de aforos, en `OBSERVACION_TERRENO`. La prueba se cumple en los tres grupos: las encuestas origen-destino alcanzan el 53,3 % de su decil superior en interacción estructurada, los trabajos cualitativos el 62,0 % en interacción experiencial y los de aforos el 18,7 % en observación de terreno, frente al 6,7 % y el 5,3 % en los otros dos ejes. El script repite además la concentración por orientación con tres cortes (5 %, 10 % y 20 %) y las dos clasificaciones, cruda y tipificada.
 
 **Separación entre los ejes.** Coseno entre descriptores: observación ↔ estructurada 0,603; observación ↔ experiencial 0,685; estructurada ↔ experiencial 0,596: el par que resultaba necesario distinguir es el más separado. Correlación documental parcial, controlando pertinencia: 0,197, 0,431 y 0,348. Solapamiento del top-20 entre los tres ejes: 0, 1 y 0 documentos.
 
@@ -361,19 +276,13 @@ Con la caché construida, este paso requiere un par de minutos.
 python figuras.py
 ```
 
-En Colab:
-
-```python
-!python figuras.py
-```
+En Colab: `!python figuras.py`
 
 Tres figuras independientes sobre el mismo universo de 42.208 documentos, ya con las orientaciones y los ejes empíricos del paso 6 definidos: el número anual de documentos por orientación; su peso relativo, con la banda 60-70 % sombreada; y la posición media de cada orientación dentro de cada eje empírico, expresada en percentiles del propio eje, con los ejes ordenados por cercanía a la persona.
 
-Requiere `dimensiones.xlsx` (paso 1).
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, la primera se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
 
-**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, el contenido de la primera figura se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
-
-Para ver las tres figuras en Colab, en otra celda:
+Para verlas en Colab, en otra celda:
 
 ```python
 from IPython.display import Image, display
@@ -383,9 +292,7 @@ display(Image("outputs/figures/figura2_composicion.png"))
 display(Image("outputs/figures/figura3_ejes.png"))
 ```
 
-**Reconstruir los archivos ya publicados (opcional).** `generar_dataset_derivado.py` y `generar_identificadores.py` no son parte del análisis en sí: son los scripts con los que se construyeron `data/derived/documentos_scores.csv.gz` y `data/derived/corpus_identificadores.csv.gz`, ya publicados en el repositorio. Solo es necesario ejecutarlos para reconstruir esos archivos a partir del propio `dimensiones.xlsx` (el segundo también necesita los cuatro CSV de Scopus); están documentados en «Reconstrucción del corpus», más arriba.
-
-Con `dimensiones.xlsx` ya generado (paso 1), `!python reproducir_resultados.py` encadena automáticamente los pasos 3, 5, 6 y 7 de este recorrido, además de los dos scripts de reconstrucción. `clasificar_embeddings_preponderante.py` (paso 2) y `sensibilidad_descriptores.py` (paso 4) son diagnósticos aparte y se ejecutan por separado, como arriba.
+**Dataset derivado (opcional, no publicado).** `generar_dataset_derivado.py` produce, a partir de `dimensiones.xlsx`, un CSV ligero con un registro por documento (año y similitudes, sin texto). No es parte del recorrido principal ni se publica en este repositorio —el corpus con texto ya está en `data/corpus/`— pero puede ser útil como resumen local para quien no quiera conservar el Excel completo.
 
 ---
 
@@ -393,18 +300,17 @@ Con `dimensiones.xlsx` ya generado (paso 1), `!python reproducir_resultados.py` 
 
 | Archivo | Función |
 |---|---|
-| `parse_scopus.py` | Utilidad interna de `run_dimension_embeddings.py` y `generar_identificadores.py`. No se ejecuta de forma independiente. |
-| `run_dimension_embeddings.py` | Solo desde Scopus — paso 1 |
-| `clasificar_embeddings_preponderante.py` | Solo desde Scopus — paso 2 |
-| `exploracion_dirigida.py` | Solo desde Scopus — paso 3 |
-| `sensibilidad_descriptores.py` | Solo desde Scopus — paso 4 |
-| `sensibilidad_umbral.py` | Clon limpio (paso 2) o desde Scopus (paso 5, con la muestra de frontera completa) |
-| `validar_ejes_empiricos.py` | Clon limpio (paso 1) o desde Scopus (paso 6, con el veredicto de la encuesta O-D) |
-| `figuras.py` | Clon limpio (paso 3) o desde Scopus (paso 7): las tres figuras y las dos tablas anuales |
-| `generar_dataset_derivado.py` | Reconstruye `data/derived/documentos_scores.csv.gz` (opcional; ya está publicado) |
-| `generar_identificadores.py` | Reconstruye `data/derived/corpus_identificadores.csv.gz` (opcional; ya está publicado) |
-| `cargar_corpus.py` | Utilidad: toma `dimensiones.xlsx` si existe y, si no, el dataset derivado publicado |
-| `reproducir_resultados.py` | Encadena automáticamente los pasos anteriores que puede correr, según lo que haya en la carpeta |
+| `parse_scopus.py` | Utilidad interna de `run_dimension_embeddings.py`. No se ejecuta de forma independiente. |
+| `run_dimension_embeddings.py` | Paso 1 — por defecto lee `data/corpus/` |
+| `clasificar_embeddings_preponderante.py` | Paso 2 |
+| `exploracion_dirigida.py` | Paso 3 |
+| `sensibilidad_descriptores.py` | Paso 4 |
+| `sensibilidad_umbral.py` | Paso 5 |
+| `validar_ejes_empiricos.py` | Paso 6 |
+| `figuras.py` | Paso 7: las tres figuras y las dos tablas anuales |
+| `generar_dataset_derivado.py` | Utilidad opcional: resumen ligero de `dimensiones.xlsx` para uso local, no publicado |
+| `cargar_corpus.py` | Utilidad interna: carga `dimensiones.xlsx` para los scripts que lo necesitan |
+| `reproducir_resultados.py` | Encadena los siete pasos en orden, desde `data/corpus/` |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
 
 ---
@@ -424,3 +330,5 @@ El código de este repositorio se escribió y depuró con asistencia de Claude (
 ## Referencia metodológica
 
 Marin-Garcia, J. A., Martinez-Tomas, J., Juarez-Tarraga, A., y Santandreu-Mascarell, C. (2024). *Protocol paper: From chaos to order. Augmenting manual article screening with sentence transformers in management systematic reviews.* WPOM-Working Papers on Operations Management, 15, 172-208. https://doi.org/10.4995/wpom.22282
+
+Huotala, A., Kuutila, M., & Mäntylä, M. (2025). *SESR-Eval: Dataset for evaluating LLMs in the title-abstract screening of systematic reviews.* En *Proceedings of the 19th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM '25).* https://doi.org/10.5281/zenodo.16408882 — precedente citado para la publicación abierta del corpus completo (ver «Contenido del repositorio»).
