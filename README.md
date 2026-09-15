@@ -292,8 +292,6 @@ display(Image("outputs/figures/figura2_composicion.png"))
 display(Image("outputs/figures/figura3_ejes.png"))
 ```
 
-**Dataset derivado (opcional, no publicado).** `generar_dataset_derivado.py` produce, a partir de `dimensiones.xlsx`, un CSV ligero con un registro por documento (año y similitudes, sin texto). No es parte del recorrido principal ni se publica en este repositorio —el corpus con texto ya está en `data/corpus/`— pero puede ser útil como resumen local para quien no quiera conservar el Excel completo.
-
 ---
 
 ## Archivos de este repositorio
@@ -308,7 +306,6 @@ display(Image("outputs/figures/figura3_ejes.png"))
 | `sensibilidad_umbral.py` | Paso 5 |
 | `validar_ejes_empiricos.py` | Paso 6 |
 | `figuras.py` | Paso 7: las tres figuras y las dos tablas anuales |
-| `generar_dataset_derivado.py` | Utilidad opcional: resumen ligero de `dimensiones.xlsx` para uso local, no publicado |
 | `cargar_corpus.py` | Utilidad interna: carga `dimensiones.xlsx` para los scripts que lo necesitan |
 | `reproducir_resultados.py` | Encadena los siete pasos en orden, desde `data/corpus/` |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |
