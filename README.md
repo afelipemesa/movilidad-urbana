@@ -10,15 +10,16 @@ El análisis mide qué orientaciones analíticas predominan en la literatura cie
 
 ## Contenido del repositorio
 
-No se incluyen los CSV de Scopus (173 MB), los embeddings cacheados (407 MB) ni los Excel de resultados (30-45 MB cada uno): superan los límites de GitHub y, en el caso de Scopus, su redistribución no está permitida.
+Los embeddings cacheados (407 MB) y los Excel de resultados (30-45 MB cada uno) no se incluyen en este repositorio: superan los límites prácticos de GitHub y se regeneran con los scripts aquí publicados. Los CSV de Scopus (173 MB en total, títulos y resúmenes incluidos; ninguno de los cuatro tramos supera individualmente el límite de 100 MB de GitHub) sí se incluyen directamente, en `data/corpus/`: se publican con fines de ciencia abierta y replicabilidad, siguiendo la práctica ya adoptada en otros conjuntos de datos bibliométricos de acceso abierto de escala comparable — p. ej. SESR-Eval (Huotala et al., 2025).
 
 Sí se incluye todo lo que define el análisis (código y descriptores) y un dataset derivado que permite auditar los resultados sin reejecutar el cálculo de embeddings:
 
 | Ruta | Contenido |
 |---|---|
 | `descriptors/dimensiones.json` | Definición vigente de los descriptores. Es el único archivo normativo. |
+| `data/corpus/` | Los cuatro CSV originales de Scopus —título, resumen y año— de los 53.105 documentos: `2006-2019.csv`, `2020-2023.csv`, `2024-2025.csv`, `2026.csv` (173 MB en total). |
 | `data/derived/documentos_scores.csv.gz` | Un registro por documento (53.105): `doc_id`, `title_hash`, año y similitudes coseno promediadas. |
-| `data/derived/corpus_identificadores.csv.gz` | Identificadores de los mismos 53.105 documentos: `doc_id`, `title_hash`, año, `eid` y `doi`. Permite reconstruir el corpus sin redistribuir texto con licencia. |
+| `data/derived/corpus_identificadores.csv.gz` | Identificadores de los mismos 53.105 documentos: `doc_id`, `title_hash`, año, `eid` y `doi`. Complementa el corpus completo con un archivo ligero para verificación rápida sin descargar los 173 MB. |
 | `outputs/tables/` | Tablas de validación, de sensibilidad y las dos tablas anuales de las que sale la Tabla 1 del artículo. |
 | `outputs/figures/` | Figuras. |
 
@@ -38,21 +39,21 @@ No recalcula embeddings, y funciona de dos maneras según lo que haya en la carp
 
 La terminología importa, porque «reproducible» y «replicable» no significan lo mismo, y este repositorio ofrece cosas distintas en cada nivel.
 
-Con un clon de hoy ya se puede comprobar la reproducibilidad computacional: las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin necesidad de acceso a Scopus. También queda garantizada la trazabilidad del corpus, porque los 53.105 documentos están identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI. La reconstrucción del corpus fuente exige más: solo quien tenga acceso a Scopus puede recuperar los registros exactos y repetir el proceso completo, incluido el cálculo de embeddings.
+Con un clon de hoy ya se puede comprobar la reproducibilidad computacional: las tablas, las figuras y las cifras del artículo se regeneran a partir de los datos derivados y del código publicados, sin necesidad de acceso a Scopus ni al corpus completo. También queda garantizada la trazabilidad del corpus, porque los 53.105 documentos están identificados uno a uno mediante `doc_id`, `title_hash`, año, EID y DOI.
 
-Lo que no puede hacerse desde el repositorio es buscar palabras dentro de los documentos (la exploración bibliográfica dirigida y la prueba de validación de los ejes), porque eso requiere los títulos y resúmenes, que no se redistribuyen.
+Con el corpus completo —incluido directamente en este repositorio, en `data/corpus/` (ver «Disponibilidad y reconstrucción del corpus» más abajo)— la replicabilidad es total: cualquier persona, tenga o no acceso propio a Scopus, puede repetir también la exploración bibliográfica dirigida y la prueba de validación de los ejes, que buscan palabras dentro de los títulos y resúmenes. Lo único que exige tiempo de cómputo considerable, documentado más abajo, es el cálculo de embeddings desde cero (paso 1) — ningún paso exige ya un acceso restringido.
 
-El dataset derivado no contiene títulos ni resúmenes: únicamente un índice de fila, el año y las puntuaciones. Por esa razón puede publicarse sin infringir la licencia de la base de datos.
+### Disponibilidad y reconstrucción del corpus
 
-### Reconstrucción del corpus
+El corpus completo —los cuatro CSV exportados de Scopus, con título, resumen y año de los 53.105 documentos (173 MB en total)— se publica directamente en este repositorio, en `data/corpus/`.
 
-Los CSV exportados de Scopus no se redistribuyen. En su lugar se publica `data/derived/corpus_identificadores.csv.gz`, con el EID de Scopus y el DOI de cada uno de los 53.105 documentos: el EID está presente en el 100 % de los registros y el DOI en el 92,3 %. Los identificadores son referencias, no contenido con licencia.
+Se publica con fines de ciencia abierta y replicabilidad, siguiendo la práctica ya adoptada en otros conjuntos de datos bibliométricos de acceso abierto de escala comparable. El precedente más directo es Huotala, Kuutila y Mäntylä (2025), quienes publicaron el dataset SESR-Eval (34.528 estudios primarios, extraídos en parte vía la API de Scopus), con una declaración explícita de que los datos se comparten para favorecer la ciencia abierta y la reproducibilidad:
 
-Cualquier persona con acceso a Scopus puede así recuperar los documentos uno a uno y verificar que su corpus es el mismo, comparando el SHA-256 del título normalizado con la columna `title_hash`. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`: se pueden unir por cualquiera de las dos columnas.
+> Huotala, A., Kuutila, M., & Mäntylä, M. (2025). *SESR-Eval: Dataset for evaluating LLMs in the title-abstract screening of systematic reviews.* En *Proceedings of the 19th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM '25).* https://doi.org/10.5281/zenodo.16408882
 
-El archivo `corpus_identificadores.csv.gz` permite identificar y reconstruir el corpus original sin redistribuir títulos ni resúmenes de Scopus. La correspondencia con el dataset derivado se verificó para los 53.105 registros mediante `title_hash` y año.
+Como complemento, y para quien no necesite el corpus completo, `data/derived/corpus_identificadores.csv.gz` ofrece una versión ligera con el EID de Scopus y el DOI de cada uno de los 53.105 documentos (EID presente en el 100 % de los registros, DOI en el 92,3 %), junto con `title_hash` para verificar rápidamente que una copia obtenida de forma independiente desde Scopus coincide exactamente con la publicada aquí, sin descargar los 173 MB completos. Las dos tablas de `data/derived/` comparten `doc_id` y `title_hash`: se pueden unir por cualquiera de las dos columnas.
 
-Lo genera `generar_identificadores.py` a partir de los cuatro CSV originales. Reconstruye el corpus con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 (261 duplicados retirados), y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
+Quien prefiera reconstruir el corpus de forma independiente en lugar de usar el de este repositorio —por ejemplo, para obtener una versión más actualizada de Scopus— puede hacerlo con `generar_identificadores.py`, que reconstruye el corpus a partir de los cuatro CSV originales con el mismo orden de lectura, el mismo filtro de título y resumen y la misma eliminación de duplicados por título normalizado que el paso 1 (261 duplicados retirados), y toma el `doc_id` del dataset ya publicado uniendo por `title_hash`, en lugar de reasignarlo.
 
 ### Construcción de `doc_id`
 
@@ -92,6 +93,8 @@ Scopus limita cada descarga a 20.000 registros: por eso el corpus se exportó en
 **Fecha de consulta: 7 de septiembre de 2026.** Scopus se actualiza de forma continua y una consulta posterior devolverá más registros; esa fecha es la que fija el corpus descrito aquí.
 
 Quien repita esta consulta hoy obtendrá más de 53.105 registros, y es probable que necesite más de cuatro tramos para descargarlos todos (el límite de Scopus son 20.000 registros por descarga). Eso no es un problema: como se explica en «Paso 1» más abajo, el script que combina los archivos acepta cualquier cantidad, con cualquier nombre.
+
+Los cuatro CSV resultantes de esta consulta son exactamente los que se publican en `data/corpus/`, en este mismo repositorio (ver «Disponibilidad y reconstrucción del corpus», más arriba).
 
 ---
 
