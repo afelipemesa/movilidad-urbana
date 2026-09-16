@@ -127,13 +127,15 @@ python run_dimension_embeddings.py
 
 En Colab: `!python run_dimension_embeddings.py`
 
-Sin `--input`, el script toma automáticamente los tres archivos correspondientes al periodo analizado, 2006–2025, disponibles en `data/corpus/`.
+Sin `--input`, toma automáticamente los cuatro CSV de `data/corpus/`, en orden alfabético. Para usar un corpus propio en su lugar (ver «Replicar con un corpus nuevo», más arriba), se pasa explícitamente: `--input archivo1.csv archivo2.csv`.
 
-El script integra estos archivos, elimina los registros duplicados por título y obtiene el corpus de partida de 46.907 documentos. Para cada documento, representa conjuntamente el título y el resumen mediante tres modelos de *sentence-transformers*: `all-MiniLM-L6-v2`, `all-mpnet-base-v2` y `allenai-specter`. A partir de estas representaciones calcula la similitud coseno con los descriptores definidos en `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres correspondientes a las orientaciones temáticas —tecnicista, ambiental y social-humana— y tres asociados a los ejes empíricos analizados en el paso 6. El procedimiento toma como referencia el protocolo de cribado semántico propuesto por Marin-Garcia et al. (2024).
+Primero, el script integra los cuatro archivos disponibles en `data/corpus/`, elimina los registros duplicados por título y obtiene un total de 53.105 documentos. De ellos, 46.907 corresponden al periodo 2006–2025 seleccionado para el análisis del artículo; los registros de 2026 se procesan únicamente como parte del corpus actualizado y no intervienen en los resultados publicados.
+
+Para cada documento, el script representa conjuntamente el título y el resumen mediante tres modelos de *sentence-transformers*: `all-MiniLM-L6-v2`, `all-mpnet-base-v2` y `allenai-specter`. A partir de estas representaciones calcula la similitud coseno con los descriptores definidos en `descriptors/dimensiones.json`: uno de pertinencia al dominio, tres correspondientes a las orientaciones temáticas —tecnicista, ambiental y social-humana— y tres asociados a los ejes empíricos analizados en el paso 6. El procedimiento toma como referencia el protocolo de cribado semántico propuesto por Marin-Garcia et al. (2024).
 
 El parámetro `--embeddings-cache cache/` (activo por defecto en `reproducir_resultados.py`, opcional si se corre este script suelto) guarda los embeddings de los documentos, la parte costosa del cálculo: una vez construida la caché, cualquier cambio posterior en los descriptores se resuelve en segundos. La caché se valida con una huella SHA-256 del corpus y se invalida sola si cambian los documentos de entrada.
 
-**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico (coseno entre descriptores, correlaciones brutas y parciales, solapamiento del top-20). Es el insumo de todos los pasos siguientes.
+**Salida:** `dimensiones.xlsx`, con la hoja `documentos` (una fila por documento) y hojas de diagnóstico.
 
 **Paso 2. Clasificación preponderante**
 
