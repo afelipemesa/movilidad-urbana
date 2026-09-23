@@ -282,7 +282,7 @@ En Colab: `!python figuras.py`
 
 Tres figuras independientes sobre el mismo universo de 42.208 documentos, ya con las orientaciones y los ejes empíricos del paso 6 definidos: el número anual de documentos por orientación; su peso relativo, con la banda 60-70 % sombreada; y la posición media de cada orientación dentro de cada eje empírico, expresada en percentiles del propio eje, con los ejes ordenados por cercanía a la persona.
 
-**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, la primera se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y las otras dos corresponden a las Figuras 1 y 2.
+**Salidas:** `outputs/figures/figura1_volumen.png`, `figura2_composicion.png` y `figura3_ejes.png`; y, en `outputs/tables/`, `documentos_por_anio_y_dimension.csv` y `tabla1_quinquenios.csv`. En el artículo, la primera se presenta en forma de tabla (es `tabla1_quinquenios.csv`) y `figura2_composicion.png` corresponde a la Figura 1. `figura3_ejes.png` es una versión en líneas de la misma medida que presenta la Figura 2 del artículo; esta última se genera con `figura2_posturas.py` (ver más abajo).
 
 Para verlas en Colab, en otra celda:
 
@@ -293,6 +293,18 @@ display(Image("outputs/figures/figura1_volumen.png"))
 display(Image("outputs/figures/figura2_composicion.png"))
 display(Image("outputs/figures/figura3_ejes.png"))
 ```
+
+**Figura 2 del artículo: posturas epistémicas (gráfica de puntos)**
+
+```bash
+python figura2_posturas.py
+```
+
+En Colab: `!python figura2_posturas.py`
+
+Presenta la misma medida que `figura3_ejes.png` como una fila por postura epistémica: observar el desplazamiento, preguntar con categorías previas y escuchar la experiencia. Para cada postura, los 42.208 documentos se ordenan según su cercanía semántica a ella, y la posición de cada uno en ese orden va de 0 a 100 (50 es la mitad del corpus). Cada punto es la posición media de una orientación. La posición es relativa: indica cuánto más cerca de la postura está una orientación respecto al resto del corpus, no qué proporción de sus artículos usa un método determinado.
+
+**Salidas:** `outputs/figures/figura2_posturas.png` y `outputs/tables/figura2_posturas.csv`, que incluye la distancia entre social-humana y tecnicista en cada postura.
 
 ---
 
@@ -308,6 +320,7 @@ display(Image("outputs/figures/figura3_ejes.png"))
 | `sensibilidad_umbral.py` | Paso 5 |
 | `validar_ejes_empiricos.py` | Paso 6 |
 | `figuras.py` | Paso 7: las tres figuras y las dos tablas anuales |
+| `figura2_posturas.py` | Paso 7: Figura 2 del artículo, posturas epistémicas en gráfica de puntos |
 | `cargar_corpus.py` | Utilidad interna: carga `dimensiones.xlsx` para los scripts que lo necesitan |
 | `reproducir_resultados.py` | Encadena los siete pasos en orden, desde `data/corpus/` |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |

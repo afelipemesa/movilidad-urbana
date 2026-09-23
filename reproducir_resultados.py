@@ -29,6 +29,7 @@ PASOS = [
     ("Sensibilidad del umbral",             "sensibilidad_umbral.py"),
     ("Validacion de los ejes empiricos",    "validar_ejes_empiricos.py"),
     ("Figuras y tablas finales",            "figuras.py"),
+    ("Figura 2: posturas epistemicas",      "figura2_posturas.py"),
 ]
 
 print("=" * 70)
