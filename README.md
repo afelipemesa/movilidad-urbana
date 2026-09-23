@@ -306,6 +306,18 @@ Presenta la misma medida que `figura3_ejes.png` como una fila por postura epist�
 
 **Salidas:** `outputs/figures/figura2_posturas.png` y `outputs/tables/figura2_posturas.csv`, que incluye la distancia entre social-humana y tecnicista en cada postura.
 
+**Top 10 de artículos por postura**
+
+```bash
+python top10_posturas.py
+```
+
+En Colab: `!python top10_posturas.py`
+
+Complementa la Figura 2: para cada postura epistémica identifica los artículos con mayor similitud semántica a ella dentro de los 42.208 documentos. Da los 10 más cercanos de todo el corpus, con su orientación predominante; los 10 más cercanos dentro de cada orientación; y la composición por orientación de los 10, 100 y 1.000 más cercanos. Necesita los títulos y resúmenes, así que requiere `dimensiones.xlsx` (salida del paso 1).
+
+**Salida:** `outputs/tables/top10_articulos_por_postura.xlsx`, con tres hojas: `Resumen`, `Top10 por postura` y `Top10 postura x dimensión`.
+
 ---
 
 ## Archivos de este repositorio
@@ -321,6 +333,7 @@ Presenta la misma medida que `figura3_ejes.png` como una fila por postura epist�
 | `validar_ejes_empiricos.py` | Paso 6 |
 | `figuras.py` | Paso 7: las tres figuras y las dos tablas anuales |
 | `figura2_posturas.py` | Paso 7: Figura 2 del artículo, posturas epistémicas en gráfica de puntos |
+| `top10_posturas.py` | Paso 7: top 10 de artículos más cercanos a cada postura, en total y por orientación |
 | `cargar_corpus.py` | Utilidad interna: carga `dimensiones.xlsx` para los scripts que lo necesitan |
 | `reproducir_resultados.py` | Encadena los siete pasos en orden, desde `data/corpus/` |
 | `descriptors/dimensiones.json` | Descriptores vigentes: pertinencia, tres orientaciones y tres ejes empíricos |

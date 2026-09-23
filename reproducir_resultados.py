@@ -30,6 +30,7 @@ PASOS = [
     ("Validacion de los ejes empiricos",    "validar_ejes_empiricos.py"),
     ("Figuras y tablas finales",            "figuras.py"),
     ("Figura 2: posturas epistemicas",      "figura2_posturas.py"),
+    ("Top 10 de articulos por postura",     "top10_posturas.py"),
 ]
 
 print("=" * 70)
